@@ -20,7 +20,6 @@ export default function Login() {
     setBusy(true);
     try {
       await login(identifier.trim(), password);
-      // App re-renders into the role dashboard automatically.
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {

@@ -5,14 +5,14 @@ import { Button, Badge, Modal, Spinner, initials } from '../../components/ui';
 import { useToast } from '../../components/Toast';
 
 export default function AccountPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, setUser } = useAuth();
   const [show, setShow] = useState(false);
 
   return (
     <>
       <div className="page-head">
-        <h1>Account</h1>
-        <p>Manage your profile and security.</p>
+        <h1>Settings</h1>
+        <p>Manage your profile, security and portal menu.</p>
       </div>
 
       <div className="card pad-lg" style={{ maxWidth: 640 }}>
@@ -28,6 +28,8 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+
+      {user.role === 'bu' && <ConfigurePortal user={user} setUser={setUser} />}
 
       <div className="card" style={{ maxWidth: 640, marginTop: 16, padding: '6px 20px' }}>
         <div className="list-row">
@@ -88,5 +90,53 @@ function PasswordModal({ onClose }) {
       <div className="field"><label>Current password</label><input className="input" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} /></div>
       <div className="field"><label>New password (6+)</label><input className="input" type="password" value={next} onChange={(e) => setNext(e.target.value)} /></div>
     </Modal>
+  );
+}
+
+const MENU_OPTIONS = [
+  ['dashboard', 'Dashboard'],
+  ['people', 'People'],
+  ['cohort', 'Cohort Overview'],
+  ['materials', 'Materials'],
+  ['domains', 'Domains'],
+  ['community', 'Community'],
+  ['interviews', 'Interviews'],
+];
+
+function ConfigurePortal({ user, setUser }) {
+  const { toast, toastError } = useToast();
+  const allKeys = MENU_OPTIONS.map(([k]) => k);
+  const initial = user.menuConfig && user.menuConfig.length ? user.menuConfig : allKeys;
+  const [selected, setSelected] = useState(initial);
+  const [busy, setBusy] = useState(false);
+
+  const toggle = (k) =>
+    setSelected((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]));
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const res = await api.updateMyMenu(selected);
+      setUser({ ...user, menuConfig: res.user.menuConfig });
+      toast('Menu updated');
+    } catch (e) { toastError(e); } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="card" style={{ maxWidth: 640, marginTop: 16, padding: 20 }}>
+      <div style={{ fontSize: 15, fontWeight: 750, color: 'var(--navy)', marginBottom: 4 }}>Configure portal</div>
+      <div className="muted" style={{ fontSize: 12.5, marginBottom: 12 }}>Choose which menu items appear in your sidebar.</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 8 }}>
+        {MENU_OPTIONS.map(([k, label]) => (
+          <label key={k} className="row gap-8" style={{ alignItems: 'center', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer' }}>
+            <input type="checkbox" checked={selected.includes(k)} onChange={() => toggle(k)} />
+            <span style={{ fontSize: 13 }}>{label}</span>
+          </label>
+        ))}
+      </div>
+      <div className="row" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+        <Button variant="cyan" onClick={save} disabled={busy}>{busy ? <Spinner sm /> : 'Save menu'}</Button>
+      </div>
+    </div>
   );
 }

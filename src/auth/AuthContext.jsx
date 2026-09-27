@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api, setToken, getToken } from '../api/client';
-
+import {
+  registerPushNotifications,
+} from '../services/pushNotifications';
 const AuthCtx = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -26,6 +28,12 @@ export function AuthProvider({ children }) {
     const { token, user } = await api.login(identifier, password);
     setToken(token);
     setUser(user);
+
+    try {
+      await registerPushNotifications();
+    } catch (error) {
+    }
+
     return user;
   };
 

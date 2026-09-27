@@ -23,7 +23,7 @@ export default function ChecklistView() {
       } finally {
         setLoading(false);
       }
-    })(); // eslint-disable-next-line
+    })();
   }, [id]);
 
   const domain = useMemo(() => {
@@ -33,7 +33,6 @@ export default function ChecklistView() {
     );
   }, [data, domainId]);
 
-  // Build Section -> Topic -> items from all checklists in the domain
   const sections = useMemo(() => {
     const bySection = new Map();
 
@@ -64,7 +63,7 @@ export default function ChecklistView() {
         (n, arr) => n + arr.filter((i) => i.understood).length,
         0
       ),
-      topics: Array.from(s.topics.entries()), // [topicName, items[]]
+      topics: Array.from(s.topics.entries()),
     }));
   }, [domain]);
 
@@ -106,7 +105,6 @@ export default function ChecklistView() {
 
               {Object.entries(groupedItems).map(([topicName, topicItems]) => (
                 <div key={topicName} style={{ marginBottom: 18 }}>
-                  {/* TOPIC */}
                   <div
                     style={{
                       fontSize: 11,
@@ -120,10 +118,8 @@ export default function ChecklistView() {
                     {topicName}
                   </div>
 
-                  {/* TABLE */}
                   <div style={{ border: '1px solid #dbe3ec', borderRadius: 9, overflowX: 'auto' }}>
                     <div style={{ minWidth: 650 }}>
-                      {/* HEADER */}
                       <div
                         style={{
                           display: 'grid',
@@ -140,7 +136,6 @@ export default function ChecklistView() {
                         <div style={{ padding: '9px 8px', textAlign: 'center' }}>Proficiency</div>
                       </div>
 
-                      {/* ITEMS */}
                       {topicItems.map((item, itemIndex) => {
                         const tried = item?.tried === true;
                         const understood = item?.understood === true;
@@ -160,7 +155,6 @@ export default function ChecklistView() {
                               fontSize: 11,
                             }}
                           >
-                            {/* TRIED */}
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 10 }}>
                               <span
                                 style={{
@@ -181,7 +175,6 @@ export default function ChecklistView() {
                               </span>
                             </div>
 
-                            {/* UNDERSTOOD */}
                             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 10 }}>
                               <span
                                 style={{
@@ -202,12 +195,10 @@ export default function ChecklistView() {
                               </span>
                             </div>
 
-                            {/* CHECKLIST ITEM */}
                             <div style={{ padding: '10px 12px', lineHeight: 1.5, color: '#334155' }}>
                               {itemText}
                             </div>
 
-                            {/* PROFICIENCY */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
                               <span
                                 style={{

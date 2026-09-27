@@ -38,7 +38,7 @@ export default function LogsPage() {
   };
 
   useEffect(() => {
-    load(); // eslint-disable-next-line
+    load();
   }, [action, entity, from, to, page]);
 
   const applySearch = (e) => {
@@ -64,12 +64,10 @@ export default function LogsPage() {
         <button className={`tab ${view === 'insights' ? 'active' : ''}`} onClick={() => setView('insights')}>Insights</button>
       </div>
 
-
 {view === 'insights' ? (
   <LogInsights />
 ) : (<>
 
-{/* FILTERS */}
       <section className="card" style={{ padding: 14, marginBottom: 14 }}>
         <form onSubmit={applySearch} className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div className="field" style={{ margin: 0 }}>
@@ -154,10 +152,8 @@ export default function LogsPage() {
         </>
       )}
 
-
 </>)}
 
-      
     </>
   );
 }

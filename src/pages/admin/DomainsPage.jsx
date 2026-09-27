@@ -2,23 +2,23 @@ import { useEffect, useState } from 'react';
 import { api, uid } from '../../api/client';
 import { Button, Modal, LoadingPage, Empty, Spinner } from '../../components/ui';
 import { useToast } from '../../components/Toast';
-
+import { useAuth } from '../../auth/AuthContext';
 
 export default function DomainsPage() {
   const [domains, setDomains] = useState([]);
   const [loading, setLoading] = useState(true);
   const [show, setShow] = useState(false);
-  const { toastError } = useToast();
+  const { toast, toastError } = useToast();
   const [confirm, setConfirm] = useState(null);
-
+  const { user } = useAuth();
   const thStyle = { padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' };
   const tdStyle = { padding: '12px 14px', fontSize: 13, verticalAlign: 'middle' };
-
+  const canEdit = ['admin', 'bu', 'manager'].includes(String(user?.role || '').toLowerCase());
   const removeDomain = async (d) => {
     try {
       await api.deleteDomain(uid(d));
       toast('Domain deleted');
-      await load();            // your reload function
+      await load();
     } catch (e) { toastError(e); }
   };
 
@@ -34,7 +34,7 @@ export default function DomainsPage() {
     }
   };
   useEffect(() => {
-    load(); // eslint-disable-next-line
+    load();
   }, []);
 
   return (
@@ -44,7 +44,8 @@ export default function DomainsPage() {
           <h1>Domains</h1>
           <p>Domains group the training materials engineers work through.</p>
         </div>
-        <Button variant="cyan" onClick={() => setShow(true)}>+ Add domain</Button>
+        {(canEdit &&
+          <Button variant="cyan" onClick={() => setShow(true)}>+ Add domain</Button>)}
       </div>
 
       {loading ? (
@@ -59,7 +60,7 @@ export default function DomainsPage() {
                 <th style={thStyle}>Domain</th>
                 <th style={thStyle}>Key</th>
                 <th style={thStyle}>Description</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Action</th>
+                 {(canEdit && <th style={{ ...thStyle, textAlign: 'right' }}>Action</th>)}
               </tr>
             </thead>
             <tbody>
@@ -71,6 +72,7 @@ export default function DomainsPage() {
                   <td style={{ ...tdStyle, color: 'var(--muted)' }}>{d.key || '—'}</td>
                   <td style={{ ...tdStyle, color: 'var(--muted)' }}>{d.description || '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>
+                    {(canEdit && 
                     <Button
                       variant="danger"
                       size="sm"
@@ -81,7 +83,7 @@ export default function DomainsPage() {
                       })}
                     >
                       Delete
-                    </Button>
+                    </Button> )}
                   </td>
                 </tr>
               ))}
@@ -103,7 +105,6 @@ export default function DomainsPage() {
     </>
   );
 }
-
 
 function ConfirmModal({ title = 'Are you sure?', message, confirmLabel = 'Delete', onConfirm, onClose, busy }) {
   return (
@@ -149,7 +150,6 @@ function ConfirmModal({ title = 'Are you sure?', message, confirmLabel = 'Delete
     </div>
   );
 }
-
 
 function DomainModal({ onClose, onDone }) {
   const [key, setKey] = useState('');

@@ -10,7 +10,7 @@ const CATS = [
   ['practical', 'Practical'],
   ['advanced', 'Advanced'],
 ];
-const CAT_SHORT = ['T', 'C', 'P', 'A'];
+const CAT_SHORT = ['T', 'C', 'W', 'E'];
 
 const AREAS = [
   ['materials', 'Training'],
@@ -37,7 +37,7 @@ export default function CohortDashboard() {
     }
   };
   useEffect(() => {
-    load(); // eslint-disable-next-line
+    load();
   }, []);
 
   if (loading) return <LoadingPage />;
@@ -61,13 +61,26 @@ export default function CohortDashboard() {
       </div>
 
       <div className="grid grid-2" style={{ marginTop: 16 }}>
+
         <div className="card pad-lg">
           <div className="section-title" style={{ margin: '0 0 14px' }}>Average completion by domain</div>
-          {Object.keys(domainAverages).length === 0 && <p className="muted" style={{ fontSize: 13 }}>No active domains yet.</p>}
-          {Object.entries(domainAverages).map(([k, v]) => (
-            <ProgressRow key={k} label={k.toUpperCase()} value={v} navy />
-          ))}
+
+          {(() => {
+            const allDomains = {};
+            (rows || []).forEach((row) => {
+              Object.entries(row.domains || {}).forEach(([k, d]) => { allDomains[k] = d.name || k; });
+            });
+            const keys = Object.keys(allDomains);
+            if (keys.length === 0) return <p className="muted" style={{ fontSize: 13 }}>No domains yet.</p>;
+            return keys
+              .sort((a, b) => allDomains[a].localeCompare(allDomains[b]))
+              .map((k) => (
+                <ProgressRow key={k} label={allDomains[k]} value={domainAverages[k] ?? 0} navy />
+              ));
+          })()}
+
         </div>
+
         <div className="card pad-lg">
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', margin: '0 0 14px' }}>
             <div className="section-title" style={{ margin: 0 }}>Average completion</div>
@@ -97,7 +110,7 @@ export default function CohortDashboard() {
                     </button>
                   </div>
                   <div className="li-sub">
-                    Best: {f.best?.name || '-'} at {f.best && f.best.val >= 0 ? f.best.val : 0}% · enrolled {f.days}d ago
+                    Training {f.best && f.best.val >= 0 ? f.best.val : 0}% · enrolled {f.days}d ago
                   </div>
                 </div>
                 <Badge kind="danger">Follow up</Badge>
@@ -109,7 +122,7 @@ export default function CohortDashboard() {
 
       <div className="section-title">Engineer grid</div>
       <p className="muted" style={{ fontSize: 12, margin: '-6px 0 10px' }}>
-        T = Tool · C = Concepts · P = Practical · A = Advanced · Ovr = Overall. Click a name for the full breakdown.
+        T = Training · C = Tools & Concepts · W = WriteUp · E = Excercise · Ovr = Overall. Click a name for the full breakdown.
       </p>
       {rows.length === 0 ? (
         <Empty>No engineers registered yet.</Empty>

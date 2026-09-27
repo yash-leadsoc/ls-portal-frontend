@@ -32,10 +32,10 @@ export default function Community() {
   const [body, setBody] = useState('');
   const [asking, setAsking] = useState(false);
 
-  const [openId, setOpenId] = useState(null); // expanded question
-  const [threads, setThreads] = useState({}); // questionId -> { loading, answers }
-  const [answerText, setAnswerText] = useState({}); // questionId -> string
-  const [answering, setAnswering] = useState({}); // questionId -> bool
+  const [openId, setOpenId] = useState(null);
+  const [threads, setThreads] = useState({});
+  const [answerText, setAnswerText] = useState({});
+  const [answering, setAnswering] = useState({});
 
   const loadQuestions = async () => {
     try {
@@ -49,7 +49,7 @@ export default function Community() {
   };
 
   useEffect(() => {
-    loadQuestions(); // eslint-disable-next-line
+    loadQuestions();
   }, []);
 
   const ask = async () => {
@@ -152,7 +152,6 @@ export default function Community() {
         <p>Ask a question and help each other out. Anyone can answer.</p>
       </div>
 
-      {/* ASK */}
       <section className="card" style={{ padding: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 750, color: '#102a56', marginBottom: 10 }}>
           Ask a question
@@ -178,7 +177,6 @@ export default function Community() {
         </div>
       </section>
 
-      {/* LIST */}
       <div style={{ marginTop: 18 }}>
         {questions.length === 0 ? (
           <Empty>No questions yet. Be the first to ask!</Empty>
@@ -188,7 +186,6 @@ export default function Community() {
             const thread = threads[q.id];
             return (
               <section key={q.id} className="card" style={{ padding: 16, marginBottom: 12 }}>
-                {/* QUESTION HEAD */}
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <div className="avatar" style={{ flexShrink: 0 }} title={q.author?.name}>
                     {initials(q.author?.name || '?')}
@@ -216,7 +213,6 @@ export default function Community() {
                   )}
                 </div>
 
-                {/* TOGGLE */}
                 <button
                   onClick={() => openThread(q.id)}
                   style={{
@@ -234,7 +230,6 @@ export default function Community() {
                   {open ? 'Hide answers' : `${q.answerCount || 0} answer${q.answerCount === 1 ? '' : 's'} ▾`}
                 </button>
 
-                {/* THREAD */}
                 {open && (
                   <div style={{ marginTop: 12, borderTop: '1px solid #eef2f7', paddingTop: 12 }}>
                     {thread?.loading ? (
@@ -266,7 +261,6 @@ export default function Community() {
                       ))
                     )}
 
-                    {/* ANSWER BOX */}
                     <div style={{ marginTop: 12 }}>
                       <textarea
                         className="textarea"

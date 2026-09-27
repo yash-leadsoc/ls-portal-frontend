@@ -1,236 +1,56 @@
-// import { useEffect, useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import { api, uid } from '../../api/client';
-// import { useAuth } from '../../auth/AuthContext';
-// import { Button, Badge, Modal, LoadingPage, Empty, Spinner, initials } from '../../components/ui';
-// import { useToast } from '../../components/Toast';
-
-// export default function PeoplePage() {
-//   const { user } = useAuth();
-//   const isAdmin = user.role === 'admin';
-//   const [tab, setTab] = useState(isAdmin ? 'managers' : 'employees');
-//   const [managers, setManagers] = useState([]);
-//   const [employees, setEmployees] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [modal, setModal] = useState(null); // 'manager' | 'employee'
-//   const { toastError } = useToast();
-//   const nav = useNavigate();
-
-//   const load = async () => {
-//     setLoading(true);
-//     try {
-//       if (isAdmin) {
-//         const [m, e] = await Promise.all([api.listUsers('manager'), api.listUsers('employee')]);
-//         setManagers(m.users);
-//         setEmployees(e.users);
-//       } else {
-//         const e = await api.listUsers();
-//         setEmployees(e.users);
-//       }
-//     } catch (e) {
-//       toastError(e);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-//   useEffect(() => {
-//     load(); // eslint-disable-next-line
-//   }, []);
-
-//   const list = tab === 'managers' ? managers : employees;
-
-//   return (
-//     <>
-//       <div className="page-head" style={{ display: 'flex', alignItems: 'flex-end' }}>
-//         <div style={{ flex: 1 }}>
-//           <h1>{isAdmin ? 'People' : 'My team'}</h1>
-//           <p>{isAdmin ? 'Register managers and engineers, and review engineer performance.' : 'Register and track your engineers.'}</p>
-//         </div>
-//         <Button
-//           variant="cyan"
-//           onClick={() => setModal(tab === 'managers' ? 'manager' : 'employee')}
-//         >
-//           + Add {tab === 'managers' ? 'manager' : 'employee'}
-//         </Button>
-//       </div>
-
-//       {isAdmin && (
-//         <div className="tabs">
-//           <button className={`tab ${tab === 'managers' ? 'active' : ''}`} onClick={() => setTab('managers')}>
-//             Managers ({managers.length})
-//           </button>
-//           <button className={`tab ${tab === 'employees' ? 'active' : ''}`} onClick={() => setTab('employees')}>
-//             Engineers ({employees.length})
-//           </button>
-//         </div>
-//       )}
-
-//       {loading ? (
-//         <LoadingPage />
-//       ) : list.length === 0 ? (
-//         <Empty>No {tab} yet. Use the button above to add one.</Empty>
-//       ) : (
-//         <div className="grid grid-auto">
-//           {list.map((u) => {
-//             const clickable = u.role === 'employee';
-//             return (
-//               <div
-//                 key={uid(u)}
-//                 className={`card card-hover ${clickable ? '' : ''}`}
-//                 style={{ cursor: clickable ? 'pointer' : 'default' }}
-//                 onClick={() => clickable && nav(`/employee/${uid(u)}`)}
-//               >
-//                 <div className="row gap-12">
-//                   <div className="avatar" style={{ width: 42, height: 42, fontSize: 15 }}>
-//                     {initials(u.name)}
-//                   </div>
-//                   <div style={{ flex: 1, minWidth: 0 }}>
-//                     <div style={{ fontWeight: 700, color: 'var(--navy)' }}>{u.name}</div>
-//                     <div className="muted" style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-//                       {u.email}
-//                     </div>
-//                   </div>
-//                 </div>
-//                 <div className="row gap-8" style={{ marginTop: 12, justifyContent: 'space-between' }}>
-//                   <Badge kind="neutral">{u.employeeCode || u.role}</Badge>
-//                   <Badge kind={u.active ? 'success' : 'neutral'}>{u.active ? 'Active' : 'Inactive'}</Badge>
-//                 </div>
-//                 {clickable && (
-//                   <div className="muted" style={{ fontSize: 12, marginTop: 10 }}>
-//                     View performance →
-//                   </div>
-//                 )}
-//               </div>
-//             );
-//           })}
-//         </div>
-//       )}
-
-//       {modal && (
-//         <RegisterModal
-//           role={modal}
-//           isAdmin={isAdmin}
-//           onClose={() => setModal(null)}
-//           onDone={() => {
-//             setModal(null);
-//             load();
-//           }}
-//         />
-//       )}
-//     </>
-//   );
-// }
-
-// function RegisterModal({ role, isAdmin, onClose, onDone }) {
-//   const [name, setName] = useState('');
-//   const [email, setEmail] = useState('');
-//   const [password, setPassword] = useState('');
-//   const [managerId, setManagerId] = useState('');
-//   const [managers, setManagers] = useState([]);
-//   const [busy, setBusy] = useState(false);
-//   const { toast, toastError } = useToast();
-
-//   useEffect(() => {
-//     if (role === 'employee' && isAdmin) {
-//       api.listManagers().then((r) => setManagers(r.managers)).catch(() => {});
-//     }
-//   }, [role, isAdmin]);
-
-//   const submit = async () => {
-//     if (!name.trim() || !email.trim() || password.length < 6) {
-//       toastError('Name, email and a 6+ character password are required');
-//       return;
-//     }
-//     setBusy(true);
-//     try {
-//       if (role === 'manager') await api.createManager(name.trim(), email.trim(), password);
-//       else await api.createEmployee(name.trim(), email.trim(), password, managerId || undefined);
-//       toast(`${role === 'manager' ? 'Manager' : 'Engineer'} registered`);
-//       onDone();
-//     } catch (e) {
-//       toastError(e);
-//     } finally {
-//       setBusy(false);
-//     }
-//   };
-
-//   return (
-//     <Modal
-//       title={`Register ${role === 'manager' ? 'manager' : 'engineer'}`}
-//       onClose={onClose}
-//       footer={
-//         <>
-//           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-//           <Button variant="cyan" onClick={submit} disabled={busy}>
-//             {busy ? <Spinner sm /> : 'Register'}
-//           </Button>
-//         </>
-//       }
-//     >
-//       <div className="field">
-//         <label>Full name</label>
-//         <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Arjun Nair" />
-//       </div>
-//       <div className="field">
-//         <label>Email</label>
-//         <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@company.com" />
-//       </div>
-//       <div className="field">
-//         <label>Temporary password</label>
-//         <input className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
-//       </div>
-//       {role === 'employee' && isAdmin && managers.length > 0 && (
-//         <div className="field">
-//           <label>Assign to manager (optional)</label>
-//           <select className="select" value={managerId} onChange={(e) => setManagerId(e.target.value)}>
-//             <option value="">— None —</option>
-//             {managers.map((m) => (
-//               <option key={uid(m)} value={uid(m)}>
-//                 {m.name} ({m.employeeCode})
-//               </option>
-//             ))}
-//           </select>
-//         </div>
-//       )}
-//       <div style={{ background: 'var(--neutral-bg)', borderRadius: 10, padding: 12, fontSize: 12.5, color: 'var(--muted)' }}>
-//         {role === 'manager'
-//           ? 'Managers can register engineers, upload materials, and build checklists & write-ups.'
-//           : 'Engineers review materials, complete checklists and answer write-ups. Their progress is tracked automatically.'}
-//       </div>
-//     </Modal>
-//   );
-// }
-
-
 import { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import { api, uid } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { Button, Badge, Modal, LoadingPage, Empty, Spinner, initials } from '../../components/ui';
 import { useToast } from '../../components/Toast';
 
+const thStyle = { padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' };
+const tdStyle = { padding: '12px 14px', fontSize: 13, verticalAlign: 'middle' };
+const STATUS_LABEL = { on_training: 'On training', ongoing_interview: 'Ongoing interview', deployed: 'Deployed' };
+const STATUS_KIND = { on_training: 'info', ongoing_interview: 'warning', deployed: 'success' };
+
 export default function PeoplePage() {
   const { user } = useAuth();
-  const isAdmin = user.role === 'admin';
-  const [tab, setTab] = useState(isAdmin ? 'managers' : 'employees');
+  const role = user.role;
+  const isAdminLike = role === 'admin' || role === 'cto';
+  const isBU = role === 'bu';
+  const canWrite = role !== 'cto';
+
+  const tabs = role === 'admin' ? ['bus', 'employees', 'ctos'] : role === 'cto' ? ['bus', 'employees'] : isBU ? ['managers', 'employees'] : ['employees'];
+  const [tab, setTab] = useState(tabs[0]);
+
+  const [bus, setBus] = useState([]);
+  const [ctos, setCtos] = useState([]);
   const [managers, setManagers] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // 'manager' | 'employee'
+  const [modal, setModal] = useState(null);
+  const [catFilter, setCatFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [buFilter, setBuFilter] = useState('');
+  const [ageFilter, setAgeFilter] = useState('');
   const { toastError } = useToast();
   const nav = useNavigate();
-const thStyle = { padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' };
-const tdStyle = { padding: '12px 14px', fontSize: 13, verticalAlign: 'middle' };
+
   const load = async () => {
     setLoading(true);
     try {
-      if (isAdmin) {
+      if (isAdminLike) {
+        const calls = [api.listBUs(), api.listUsers('employee')];
+        if (role === 'admin') calls.push(api.listCTOs());
+        const [b, e, c] = await Promise.all(calls);
+        setBus(b.bus || []);
+        setEmployees(e.users || []);
+        if (c) setCtos(c.ctos || []);
+      } else if (isBU) {
         const [m, e] = await Promise.all([api.listUsers('manager'), api.listUsers('employee')]);
-        setManagers(m.users);
-        setEmployees(e.users);
+        setManagers(m.users || []);
+        setEmployees(e.users || []);
       } else {
         const e = await api.listUsers();
-        setEmployees(e.users);
+        setEmployees(e.users || []);
       }
     } catch (e) {
       toastError(e);
@@ -238,143 +58,298 @@ const tdStyle = { padding: '12px 14px', fontSize: 13, verticalAlign: 'middle' };
       setLoading(false);
     }
   };
-  useEffect(() => {
-    load(); // eslint-disable-next-line
-  }, []);
+  useEffect(() => { load();  }, []);
 
-  const list = tab === 'managers' ? managers : employees;
+  const list = tab === 'bus' ? bus : tab === 'ctos' ? ctos : tab === 'managers' ? managers : employees;
+
+  const tabLabel = (t) => (t === 'bus' ? 'BUs' : t === 'ctos' ? 'CTOs' : t === 'managers' ? 'Trainers' : 'Engineers');
+  const addLabel = tab === 'bus' ? 'BU' : tab === 'ctos' ? 'CTO' : tab === 'managers' ? 'trainer' : 'engineer';
+  const addModal = tab === 'bus' ? 'bu' : tab === 'ctos' ? 'cto' : tab === 'managers' ? 'manager' : 'employee';
+
+  const showAdd = canWrite && role === 'admin' ? tab !== 'employees' : (canWrite && !(isAdminLike && tab === 'employees'));
+
+  const STATUS_LBL = { on_training: 'On training', ongoing_interview: 'Ongoing interview', deployed: 'Deployed' };
+  const ageBucket = (d) => (d == null ? '' : d <= 30 ? '0-30' : d <= 60 ? '31-60' : d <= 90 ? '61-90' : '90+');
+  const engMatch = (u) =>
+    (!catFilter || u.categoryName === catFilter) &&
+    (!statusFilter || u.jobStatus === statusFilter) &&
+    (!buFilter || u.buName === buFilter) &&
+    (!ageFilter || ageBucket(u.benchDays) === ageFilter);
+
+  const exportExcel = async () => {
+    try {
+      const res = await api.exportEngineers();
+      let rows = res.rows || [];
+      rows = rows.filter((r) =>
+        (!catFilter || r.category === catFilter) &&
+        (!statusFilter || r.status === statusFilter) &&
+        (!buFilter || r.bu === buFilter) &&
+        (!ageFilter || ageBucket(r.benchDays) === ageFilter)
+      );
+      const data = rows.map((r) => ({
+        LSID: r.lsid, Name: r.name, BU: r.bu, Category: r.category,
+        'Bench ageing (days)': r.benchDays, Status: STATUS_LBL[r.status] || r.status,
+        'Domains assigned': `${r.domainsAssigned}/${r.totalDomains}`,
+        'Training avg (%)': r.trainingAvg, Email: r.email, Contact: r.contact,
+        Trainer: r.trainer, 'Preferred location': r.preferredLocation, Skills: r.skills,
+        'Mock interviews': r.totalMocks, 'Client interviews': r.totalClients,
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Engineers');
+      XLSX.writeFile(wb, `engineers_${new Date().toISOString().slice(0,10)}.xlsx`);
+    } catch (e) { toastError(e); }
+  };
 
   return (
     <>
       <div className="page-head" style={{ display: 'flex', alignItems: 'flex-end' }}>
         <div style={{ flex: 1 }}>
-          <h1>{isAdmin ? 'People' : 'My team'}</h1>
-          <p>{isAdmin ? 'Register managers and engineers, and review engineer performance.' : 'Register and track your engineers.'}</p>
+          <h1>{isAdminLike ? 'People' : isBU ? 'My unit' : 'My team'}</h1>
+          <p>
+            {isAdminLike ? 'Business Units and all engineers across the org.'
+              : isBU ? 'Register your trainers and engineers.'
+              : 'Register and track your engineers.'}
+          </p>
         </div>
-        <Button
-          variant="cyan"
-          onClick={() => setModal(tab === 'managers' ? 'manager' : 'employee')}
-        >
-          + Add {tab === 'managers' ? 'manager' : 'employee'}
-        </Button>
+        {showAdd && (
+          <Button variant="cyan" onClick={() => setModal(addModal)}>+ Add {addLabel}</Button>
+        )}
       </div>
 
-      {isAdmin && (
+      {tabs.length > 1 && (
         <div className="tabs">
-          <button className={`tab ${tab === 'managers' ? 'active' : ''}`} onClick={() => setTab('managers')}>
-            Managers ({managers.length})
-          </button>
-          <button className={`tab ${tab === 'employees' ? 'active' : ''}`} onClick={() => setTab('employees')}>
-            Engineers ({employees.length})
-          </button>
+          {tabs.map((t) => (
+            <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
+              {tabLabel(t)} ({t === 'bus' ? bus.length : t === 'ctos' ? ctos.length : t === 'managers' ? managers.length : employees.length})
+            </button>
+          ))}
         </div>
       )}
 
       {loading ? (
         <LoadingPage />
       ) : list.length === 0 ? (
-        <Empty>No {tab} yet. Use the button above to add one.</Empty>
-            ) : tab === 'employees' ? (
+        <Empty>No {tabLabel(tab).toLowerCase()} yet.</Empty>
+      ) : tab === 'ctos' ? (
+        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+              <th style={thStyle}>CTO</th><th style={thStyle}>Email</th><th style={thStyle}>ID</th><th style={thStyle}>Status</th>
+            </tr></thead>
+            <tbody>
+              {ctos.map((u) => (
+                <tr key={uid(u)} style={{ borderTop: '1px solid #eef2f7' }}>
+                  <td style={tdStyle}><div className="row gap-8" style={{ alignItems: 'center' }}><div className="avatar" style={{ width: 30, height: 30, fontSize: 12 }}>{initials(u.name)}</div><span style={{ fontWeight: 700, color: 'var(--navy)' }}>{u.name}</span></div></td>
+                  <td style={{ ...tdStyle, color: 'var(--muted)' }}>{u.email}</td>
+                  <td style={tdStyle}><Badge kind="neutral">{u.employeeCode || '—'}</Badge></td>
+                  <td style={tdStyle}><Badge kind={u.active ? 'success' : 'neutral'}>{u.active ? 'Active' : 'Inactive'}</Badge></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : tab === 'bus' ? (
+        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                <th style={thStyle}>Business Unit</th>
+                <th style={thStyle}>Category</th>
+                <th style={thStyle}>Email</th>
+                <th style={thStyle}>BU ID</th>
+                <th style={thStyle}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bus.map((b) => (
+                <tr key={uid(b)} style={{ borderTop: '1px solid #eef2f7' }}>
+                  <td style={tdStyle}>
+                    <div className="row gap-8" style={{ alignItems: 'center' }}>
+                      <div className="avatar" style={{ width: 30, height: 30, fontSize: 12 }}>{initials(b.name)}</div>
+                      <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{b.name}</span>
+                    </div>
+                  </td>
+                  <td style={tdStyle}><Badge kind="info">{b.categoryName || '—'}</Badge></td>
+                  <td style={{ ...tdStyle, color: 'var(--muted)' }}>{b.email}</td>
+                  <td style={tdStyle}><Badge kind="neutral">{b.employeeCode || '—'}</Badge></td>
+                  <td style={tdStyle}><Badge kind={b.active ? 'success' : 'neutral'}>{b.active ? 'Active' : 'Inactive'}</Badge></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : tab === 'employees' ? (
+        (() => {
+          const categoryOptions = [...new Set(employees.map((u) => u.categoryName).filter(Boolean))].sort();
+          const buOptions = [...new Set(employees.map((u) => u.buName).filter(Boolean))].sort();
+          const rows = employees.filter(engMatch);
+          return (
+            <>
+
+              {role !== 'manager' && (
+  <div
+    className="row gap-8"
+    style={{
+      marginBottom: 12,
+      alignItems: 'center',
+      flexWrap: 'wrap',
+    }}
+  >
+    <select
+      className="select"
+      style={{ maxWidth: 180 }}
+      value={catFilter}
+      onChange={(e) => setCatFilter(e.target.value)}
+    >
+      <option value="">All categories</option>
+      {categoryOptions.map((c) => (
+        <option key={c} value={c}>{c}</option>
+      ))}
+    </select>
+
+    <select
+      className="select"
+      style={{ maxWidth: 180 }}
+      value={buFilter}
+      onChange={(e) => setBuFilter(e.target.value)}
+    >
+      <option value="">All BUs</option>
+      {buOptions.map((b) => (
+        <option key={b} value={b}>{b}</option>
+      ))}
+    </select>
+
+    <select
+      className="select"
+      style={{ maxWidth: 170 }}
+      value={statusFilter}
+      onChange={(e) => setStatusFilter(e.target.value)}
+    >
+      <option value="">All status</option>
+      <option value="on_training">On training</option>
+      <option value="ongoing_interview">Ongoing interview</option>
+      <option value="deployed">Deployed</option>
+    </select>
+
+    <select
+      className="select"
+      style={{ maxWidth: 150 }}
+      value={ageFilter}
+      onChange={(e) => setAgeFilter(e.target.value)}
+    >
+      <option value="">All ageing</option>
+      <option value="0-30">0–30 days</option>
+      <option value="31-60">31–60 days</option>
+      <option value="61-90">61–90 days</option>
+      <option value="90+">90+ days</option>
+    </select>
+
+    <div style={{ flex: 1 }} />
+
+    <Button variant="cyan" size="sm" onClick={exportExcel}>
+      ⬇ Export Excel
+    </Button>
+  </div>
+)}
+              <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                      <th style={thStyle}>LSID</th>
+                      <th style={thStyle}>Name</th>
+                      <th style={thStyle}>BU</th>
+                      <th style={thStyle}>BU Cat</th>
+                      <th style={thStyle}>Bench ageing</th>
+                      <th style={thStyle}>Status</th>
+                      <th style={{ ...thStyle, textAlign: 'right' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((u) => (
+                      <tr key={uid(u)} style={{ borderTop: '1px solid #eef2f7', cursor: 'pointer' }} onClick={() => nav(`/employee/${uid(u)}`)}>
+                        <td style={tdStyle}><Badge kind="neutral">{u.employeeCode || '—'}</Badge></td>
+                        <td style={tdStyle}>
+                          <div className="row gap-8" style={{ alignItems: 'center' }}>
+                            <div className="avatar" style={{ width: 30, height: 30, fontSize: 12 }}>{initials(u.name)}</div>
+                            <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{u.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ ...tdStyle, color: '#334155' }}>{u.buName || '—'}</td>
+                        <td style={tdStyle}><Badge kind="info">{u.categoryName || '—'}</Badge></td>
+                        <td style={{ ...tdStyle, color: '#334155' }}>{u.benchDays != null ? `${u.benchDays} days` : '—'}</td>
+                        <td style={tdStyle}><Badge kind={STATUS_KIND[u.jobStatus] || 'neutral'}>{STATUS_LABEL[u.jobStatus] || '—'}</Badge></td>
+                        <td style={{ ...tdStyle, textAlign: 'right', color: '#0284a8', fontWeight: 700 }}>View →</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          );
+        })()
+      ) : (
         <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
                 <th style={thStyle}>Name</th>
                 <th style={thStyle}>Email</th>
-                <th style={thStyle}>Employee ID</th>
+                <th style={thStyle}>ID</th>
                 <th style={thStyle}>Status</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {list.map((u) => (
-                <tr
-                  key={uid(u)}
-                  style={{ borderTop: '1px solid #eef2f7', cursor: 'pointer' }}
-                  onClick={() => nav(`/employee/${uid(u)}`)}
-                >
+                <tr key={uid(u)} style={{ borderTop: '1px solid #eef2f7' }}>
                   <td style={tdStyle}>
                     <div className="row gap-8" style={{ alignItems: 'center' }}>
-                      <div className="avatar" style={{ width: 30, height: 30, fontSize: 12 }}>
-                        {initials(u.name)}
-                      </div>
+                      <div className="avatar" style={{ width: 30, height: 30, fontSize: 12 }}>{initials(u.name)}</div>
                       <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{u.name}</span>
                     </div>
                   </td>
                   <td style={{ ...tdStyle, color: 'var(--muted)' }}>{u.email}</td>
                   <td style={tdStyle}><Badge kind="neutral">{u.employeeCode || '—'}</Badge></td>
-                  <td style={tdStyle}>
-                    <Badge kind={u.active ? 'success' : 'neutral'}>{u.active ? 'Active' : 'Inactive'}</Badge>
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'right', color: '#0284a8', fontWeight: 700 }}>
-                    View →
-                  </td>
+                  <td style={tdStyle}><Badge kind={u.active ? 'success' : 'neutral'}>{u.active ? 'Active' : 'Inactive'}</Badge></td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      ) : (
-        <div className="grid grid-auto">
-          {list.map((u) => {
-            const clickable = u.role === 'employee';
-            return (
-              <div
-                key={uid(u)}
-                className="card card-hover"
-                style={{ cursor: clickable ? 'pointer' : 'default' }}
-                onClick={() => clickable && nav(`/employee/${uid(u)}`)}
-              >
-                <div className="row gap-12">
-                  <div className="avatar" style={{ width: 42, height: 42, fontSize: 15 }}>
-                    {initials(u.name)}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, color: 'var(--navy)' }}>{u.name}</div>
-                    <div className="muted" style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {u.email}
-                    </div>
-                  </div>
-                </div>
-                <div className="row gap-8" style={{ marginTop: 12, justifyContent: 'space-between' }}>
-                  <Badge kind="neutral">{u.employeeCode || u.role}</Badge>
-                  <Badge kind={u.active ? 'success' : 'neutral'}>{u.active ? 'Active' : 'Inactive'}</Badge>
-                </div>
-              </div>
-            );
-          })}
         </div>
       )}
 
       {modal && (
         <RegisterModal
           role={modal}
-          isAdmin={isAdmin}
+          creatorRole={role}
           onClose={() => setModal(null)}
-          onDone={() => {
-            setModal(null);
-            load();
-          }}
+          onDone={() => { setModal(null); load(); }}
         />
       )}
     </>
   );
 }
 
-function RegisterModal({ role, isAdmin, onClose, onDone }) {
+function RegisterModal({ role, creatorRole, onClose, onDone }) {
+  const isAdmin = creatorRole === 'admin';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [employeeCode, setEmployeeCode] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [businessUnit, setBusinessUnit] = useState('');
   const [managerId, setManagerId] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [bus, setBus] = useState([]);
+  const [ctos, setCtos] = useState([]);
   const [managers, setManagers] = useState([]);
   const [busy, setBusy] = useState(false);
   const { toast, toastError } = useToast();
 
   useEffect(() => {
-    if (role === 'employee' && isAdmin) {
-      api.listManagers().then((r) => setManagers(r.managers)).catch(() => {});
-    }
+    if (role === 'bu') api.listCategories().then((r) => setCategories(r.categories || [])).catch(() => {});
+    if (isAdmin && (role === 'manager' || role === 'employee')) api.listBUs().then((r) => setBus(r.bus || [])).catch(() => {});
+    if (role === 'employee') api.listManagers().then((r) => setManagers(r.managers || [])).catch(() => {});
   }, [role, isAdmin]);
 
   const submit = async () => {
@@ -382,23 +357,21 @@ function RegisterModal({ role, isAdmin, onClose, onDone }) {
       toastError('Name, email and a 6+ character password are required');
       return;
     }
-    if (!employeeCode.trim()) {
-      toastError('Employee ID is required');
-      return;
-    }
+    if (!employeeCode.trim()) { toastError('ID is required'); return; }
+    if (role === 'bu' && !categoryId) { toastError('Category is required'); return; }
+
     setBusy(true);
     try {
-      if (role === 'manager')
-        await api.createManager(name.trim(), email.trim(), password, employeeCode.trim());
-      else
-        await api.createEmployee(
-          name.trim(),
-          email.trim(),
-          password,
-          managerId || undefined,
-          employeeCode.trim()
-        );
-      toast(`${role === 'manager' ? 'Manager' : 'Engineer'} registered`);
+      if (role === 'cto') {
+        await api.createCTO(name.trim(), email.trim(), password, employeeCode.trim());
+      } else if (role === 'bu') {
+        await api.createBU(name.trim(), email.trim(), password, employeeCode.trim(), categoryId);
+      } else if (role === 'manager') {
+        await api.createManager(name.trim(), email.trim(), password, employeeCode.trim(), businessUnit || undefined);
+      } else {
+        await api.createEmployee(name.trim(), email.trim(), password, managerId || undefined, employeeCode.trim(), businessUnit || undefined);
+      }
+      toast(`${role === 'cto' ? 'CTO' : role === 'bu' ? 'Business Unit' : role === 'manager' ? 'Trainer' : 'Engineer'} registered`);
       onDone();
     } catch (e) {
       toastError(e);
@@ -407,57 +380,71 @@ function RegisterModal({ role, isAdmin, onClose, onDone }) {
     }
   };
 
+  const titleMap = { cto: 'Register CTO', bu: 'Register Business Unit', manager: 'Register trainer', employee: 'Register engineer' };
+
   return (
     <Modal
-      title={`Register ${role === 'manager' ? 'manager' : 'engineer'}`}
+      title={titleMap[role]}
       onClose={onClose}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="cyan" onClick={submit} disabled={busy}>
-            {busy ? <Spinner sm /> : 'Register'}
-          </Button>
+          <Button variant="cyan" onClick={submit} disabled={busy}>{busy ? <Spinner sm /> : 'Register'}</Button>
         </>
       }
     >
       <div className="field">
-        <label>Full name</label>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Arjun Nair" />
+        <label>{role === 'bu' ? 'BU name' : 'Full name'}</label>
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={role === 'bu' ? 'e.g. VLSI Frontend Team' : 'e.g. Arjun Nair'} />
       </div>
+
       <div className="field">
         <label>Email</label>
         <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@company.com" />
       </div>
-      <div className="field">
-        <label>Employee ID</label>
-        <input
-          className="input"
-          value={employeeCode}
-          onChange={(e) => setEmployeeCode(e.target.value)}
-          placeholder={role === 'manager' ? 'e.g. LS-MGR-04' : 'e.g. LS-2291'}
-        />
-      </div>
-      <div className="field">
-        <label>Temporary password</label>
-        <input className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
-      </div>
-      {role === 'employee' && isAdmin && managers.length > 0 && (
+
+      {role === 'bu' && (
         <div className="field">
-          <label>Assign to manager (optional)</label>
-          <select className="select" value={managerId} onChange={(e) => setManagerId(e.target.value)}>
-            <option value="">— None —</option>
-            {managers.map((m) => (
-              <option key={uid(m)} value={uid(m)}>
-                {m.name} ({m.employeeCode})
-              </option>
-            ))}
+          <label>Category</label>
+          <select className="select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <option value="">— Select category —</option>
+            {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+          </select>
+          {categories.length === 0 && (
+            <div className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>No categories yet — add one under “BU Categories” first.</div>
+          )}
+        </div>
+      )}
+
+      <div className="field">
+        <label>{role === 'bu' ? 'BU ID' : 'Employee ID'}</label>
+        <input className="input" value={employeeCode} onChange={(e) => setEmployeeCode(e.target.value)}
+          placeholder={role === 'bu' ? 'e.g. BU-VLSI-FE' : role === 'manager' ? 'e.g. LS-MGR-04' : 'e.g. LS-2291'} />
+      </div>
+
+      {isAdmin && (role === 'manager' || role === 'employee') && (
+        <div className="field">
+          <label>Business Unit</label>
+          <select className="select" value={businessUnit} onChange={(e) => setBusinessUnit(e.target.value)}>
+            <option value="">— Select BU —</option>
+            {bus.map((b) => <option key={uid(b)} value={uid(b)}>{b.name} {b.categoryName ? `(${b.categoryName})` : ''}</option>)}
           </select>
         </div>
       )}
-      <div style={{ background: 'var(--neutral-bg)', borderRadius: 10, padding: 12, fontSize: 12.5, color: 'var(--muted)' }}>
-        {role === 'manager'
-          ? 'Managers can register engineers, upload materials, and build checklists & write-ups.'
-          : 'Engineers review materials, complete checklists and answer write-ups. Their progress is tracked automatically.'}
+
+      {role === 'employee' && managers.length > 0 && (
+        <div className="field">
+          <label>Assign to trainer (optional)</label>
+          <select className="select" value={managerId} onChange={(e) => setManagerId(e.target.value)}>
+            <option value="">— None —</option>
+            {managers.map((m) => <option key={uid(m)} value={uid(m)}>{m.name} ({m.employeeCode})</option>)}
+          </select>
+        </div>
+      )}
+
+      <div className="field">
+        <label>Temporary password</label>
+        <input className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
       </div>
     </Modal>
   );

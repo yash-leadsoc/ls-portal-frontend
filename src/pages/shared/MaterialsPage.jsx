@@ -1,653 +1,3 @@
-// import { useEffect, useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import { api, uid } from '../../api/client';
-// import { Button, Badge, Modal, LoadingPage, Empty, Spinner } from '../../components/ui';
-// import { useToast } from '../../components/Toast';
-
-// const fileIcon = (name = '') => {
-//   const e = name.split('.').pop().toLowerCase();
-//   if (['ppt', 'pptx'].includes(e)) return '📊';
-//   if (['doc', 'docx'].includes(e)) return '📄';
-//   if (e === 'pdf') return '📕';
-//   if (['xls', 'xlsx', 'csv'].includes(e)) return '📈';
-//   if (['png', 'jpg', 'jpeg'].includes(e)) return '🖼️';
-//   if (e === 'zip') return '🗜️';
-//   return '📁';
-// };
-
-// export default function MaterialsPage() {
-//   const [domains, setDomains] = useState([]);
-//   const [docs, setDocs] = useState([]);
-//   const [filter, setFilter] = useState('');
-//   const [loading, setLoading] = useState(true);
-//   const [showUpload, setShowUpload] = useState(false);
-//   const { toast, toastError } = useToast();
-//   const nav = useNavigate();
-
-//   const load = async () => {
-//     setLoading(true);
-//     try {
-//       const [d, docsRes] = await Promise.all([api.listDomains(), api.listDocuments(filter || undefined)]);
-//       setDomains(d.domains);
-//       setDocs(docsRes.documents);
-//     } catch (e) {
-//       toastError(e);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-//   useEffect(() => {
-//     load(); // eslint-disable-next-line
-//   }, [filter]);
-
-//   const download = async (doc) => {
-//     try {
-//       await api.downloadDocument(mapDoc(doc));
-//     } catch (e) {
-//       toastError(e);
-//     }
-//   };
-//   const remove = async (doc) => {
-//     if (!confirm('Archive this material?')) return;
-//     try {
-//       await api.deleteDocument(uid(doc));
-//       toast('Material archived');
-//       load();
-//     } catch (e) {
-//       toastError(e);
-//     }
-//   };
-
-//   return (
-//     <>
-//       <div className="page-head" style={{ display: 'flex', alignItems: 'flex-end' }}>
-//         <div style={{ flex: 1 }}>
-//           <h1>Training materials</h1>
-//           <p>Upload PPT / DOC / PDF against a domain, then attach checklists and write-ups.</p>
-//         </div>
-//         <Button variant="cyan" onClick={() => setShowUpload(true)}>+ Upload material</Button>
-//       </div>
-
-//       <div className="chips">
-//         <button className={`chip ${!filter ? 'active' : ''}`} onClick={() => setFilter('')}>All</button>
-//         {domains.map((d) => (
-//           <button key={uid(d)} className={`chip ${filter === uid(d) ? 'active' : ''}`} onClick={() => setFilter(uid(d))}>
-//             {d.icon} {d.name}
-//           </button>
-//         ))}
-//       </div>
-
-//       {loading ? (
-//         <LoadingPage />
-//       ) : docs.length === 0 ? (
-//         <Empty>No materials yet. Click “Upload material”.</Empty>
-//       ) : (
-//         <div className="grid grid-auto">
-//           {docs.map((doc) => (
-//             <div key={uid(doc)} className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => nav(`/document/${uid(doc)}`)}>
-//               <div className="row gap-12">
-//                 <div style={{ fontSize: 26 }}>{fileIcon(doc.originalName)}</div>
-//                 <div style={{ flex: 1, minWidth: 0 }}>
-//                   <div style={{ fontWeight: 700, color: 'var(--navy)' }}>{doc.title}</div>
-//                   <div className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-//                     {doc.originalName}
-//                   </div>
-//                 </div>
-//               </div>
-//               <div className="row" style={{ marginTop: 12, justifyContent: 'space-between' }}>
-//                 <Badge kind="info">{doc.domain?.name || '—'}</Badge>
-//                 <div className="row gap-8" onClick={(e) => e.stopPropagation()}>
-//                   <Button variant="ghost" size="sm" onClick={() => download(doc)}>⬇ Download</Button>
-//                   <Button variant="danger" size="sm" onClick={() => remove(doc)}>Archive</Button>
-//                 </div>
-//               </div>
-//             </div>
-//           ))}
-//         </div>
-//       )}
-
-//       {showUpload && (
-//         <UploadModal
-//           domains={domains}
-//           onClose={() => setShowUpload(false)}
-//           onDone={() => {
-//             setShowUpload(false);
-//             load();
-//           }}
-//         />
-//       )}
-//     </>
-//   );
-// }
-
-// function mapDoc(doc) {
-//   return { id: uid(doc), originalName: doc.originalName };
-// }
-
-// function UploadModal({ domains, onClose, onDone }) {
-//   const [title, setTitle] = useState('');
-//   const [description, setDescription] = useState('');
-//   const [domainId, setDomainId] = useState(domains[0] ? uid(domains[0]) : '');
-//   const [file, setFile] = useState(null);
-//   const [busy, setBusy] = useState(false);
-//   const { toast, toastError } = useToast();
-
-//   const submit = async () => {
-//     if (!title.trim() || !domainId || !file) {
-//       toastError('Title, domain and a file are required');
-//       return;
-//     }
-//     setBusy(true);
-//     try {
-//       await api.uploadDocument({ title: title.trim(), description, domainId, file });
-//       toast('Material uploaded');
-//       onDone();
-//     } catch (e) {
-//       toastError(e);
-//     } finally {
-//       setBusy(false);
-//     }
-//   };
-
-//   return (
-//     <Modal
-//       title="Upload material"
-//       onClose={onClose}
-//       footer={
-//         <>
-//           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-//           <Button variant="cyan" onClick={submit} disabled={busy}>{busy ? <Spinner sm /> : 'Upload'}</Button>
-//         </>
-//       }
-//     >
-//       <div className="field">
-//         <label>Domain</label>
-//         <select className="select" value={domainId} onChange={(e) => setDomainId(e.target.value)}>
-//           {domains.map((d) => (
-//             <option key={uid(d)} value={uid(d)}>{d.icon} {d.name}</option>
-//           ))}
-//         </select>
-//       </div>
-//       <div className="field">
-//         <label>Title</label>
-//         <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. STA basics reference" />
-//       </div>
-//       <div className="field">
-//         <label>Description (optional)</label>
-//         <textarea className="textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this material about?" />
-//       </div>
-//       <div className="field">
-//         <label>File (PPT, DOC, PDF, XLS, images, zip)</label>
-//         <input
-//           className="input"
-//           type="file"
-//           style={{ paddingTop: 10 }}
-//           accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.zip"
-//           onChange={(e) => setFile(e.target.files?.[0] || null)}
-//         />
-//       </div>
-//     </Modal>
-//   );
-// }
-/////////////////////////////////////
-// cODE 2
-/////////////////////////////////////
-
-// import { useEffect, useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import { api, uid } from '../../api/client';
-// import { Button, Badge, Modal, LoadingPage, Empty, Spinner } from '../../components/ui';
-// import { useToast } from '../../components/Toast';
-// import { useAuth } from '../../auth/AuthContext';
-
-// const fileIcon = (name = '') => {
-//   const e = name.split('.').pop().toLowerCase();
-//   if (['ppt', 'pptx'].includes(e)) return '📊';
-//   if (['doc', 'docx'].includes(e)) return '📄';
-//   if (e === 'pdf') return '📕';
-//   if (['xls', 'xlsx', 'csv'].includes(e)) return '📈';
-//   if (['png', 'jpg', 'jpeg'].includes(e)) return '🖼️';
-//   if (e === 'zip') return '🗜️';
-//   return '📁';
-// };
-
-// export default function MaterialsPage() {
-//   const [domains, setDomains] = useState([]);
-//   const [docs, setDocs] = useState([]);
-//   const [filter, setFilter] = useState('');
-//   const [loading, setLoading] = useState(true);
-//   const [showUpload, setShowUpload] = useState(false);
-//   const [previewDoc, setPreviewDoc] = useState(null);
-//   const { toast, toastError } = useToast();
-//   const nav = useNavigate();
-//   const { user } = useAuth();
-//   const [documents, setDocuments] = useState([]);
-
-//   const load = async () => {
-//     setLoading(true);
-//     try {
-//       const [d, docsRes] = await Promise.all([api.listDomains(), api.listDocuments(filter || undefined)]);
-//       setDomains(d.domains);
-//       setDocs(docsRes.documents);
-//     } catch (e) {
-//       toastError(e);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-//   useEffect(() => {
-//     load(); // eslint-disable-next-line
-//   }, [filter]);
-
-//   const download = async (doc) => {
-//     try {
-//       await api.downloadDocument(mapDoc(doc));
-//     } catch (e) {
-//       toastError(e);
-//     }
-//   };
-//   const remove = async (doc) => {
-//     if (!confirm('Archive this material?')) return;
-//     try {
-//       await api.deleteDocument(uid(doc));
-//       toast('Material archived');
-//       load();
-//     } catch (e) {
-//       toastError(e);
-//     }
-//   };
-
-//   useEffect(() => {
-//     console.log('API OBJECT:', api);
-//   }, []);
-//   return (
-//     <>
-//       <div className="page-head" style={{ display: 'flex', alignItems: 'flex-end' }}>
-//         <div style={{ flex: 1 }}>
-//           <h1>Training materials</h1>
-//           <p>Upload PPT / DOC / PDF against a domain, then attach checklists and write-ups.</p>
-//         </div>
-//         <Button variant="cyan" onClick={() => setShowUpload(true)}>+ Upload material</Button>
-//         {String(user?.role || '').toLowerCase() === 'admin' && (
-//           <Button
-//             variant="danger"
-//             onClick={handleRemoveAllDocuments}
-//           >
-//             🗑️
-//           </Button>
-//         )}
-//       </div>
-
-//       <div className="chips">
-//         <button className={`chip ${!filter ? 'active' : ''}`} onClick={() => setFilter('')}>All</button>
-//         {domains.map((d) => (
-//           <button key={uid(d)} className={`chip ${filter === uid(d) ? 'active' : ''}`} onClick={() => setFilter(uid(d))}>
-//             {d.icon} {d.name}
-//           </button>
-//         ))}
-//       </div>
-
-//       {loading ? (
-//         <LoadingPage />
-//       ) : docs.length === 0 ? (
-//         <Empty>No materials yet. Click “Upload material”.</Empty>
-//       ) : (
-//         <div className="grid grid-auto">
-//           {docs.map((doc) => (
-//             <div key={uid(doc)} className="card card-hover" style={{ cursor: 'pointer' }} onClick={() => nav(`/document/${uid(doc)}`)}>
-//               <div className="row gap-12">
-//                 <div style={{ fontSize: 26 }}>{fileIcon(doc.originalName)}</div>
-//                 <div style={{ flex: 1, minWidth: 0 }}>
-//                   <div style={{ fontWeight: 700, color: 'var(--navy)' }}>{doc.title}</div>
-//                   <div className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-//                     {doc.originalName}
-//                   </div>
-//                 </div>
-//               </div>
-//               <div className="row" style={{ marginTop: 12, justifyContent: 'space-between' }}>
-//                 <Badge kind="info">{doc.domain?.name || '—'}</Badge>
-//                 <div className="row gap-8" onClick={(e) => e.stopPropagation()}>
-//                   <Button
-//                     variant="ghost"
-//                     size="sm"
-//                     onClick={() => setPreviewDoc(doc)}
-//                   >
-//                     👁
-//                   </Button>
-
-//                   {/* <Button
-//                     variant="ghost"
-//                     size="sm"
-//                     onClick={() => download(doc)}
-//                   >
-//                     &#x2913;
-//                   </Button> */}
-
-//                   <Button
-//                     variant="danger"
-//                     size="sm"
-//                     onClick={() => remove(doc)}
-//                   >
-//                     Delete
-//                   </Button>
-//                 </div>
-//               </div>
-//             </div>
-//           ))}
-//         </div>
-//       )}
-
-//       {showUpload && (
-//         <UploadModal
-//           domains={domains}
-//           onClose={() => setShowUpload(false)}
-//           onDone={() => {
-//             setShowUpload(false);
-//             load();
-//           }}
-//         />
-//       )}
-
-//       {previewDoc && (
-//         <FilePreviewModal
-//           doc={previewDoc}
-//           onClose={() => setPreviewDoc(null)}
-//         />
-//       )}
-//     </>
-//   );
-// }
-
-// const handleRemoveAllDocuments = async () => {
-//   const confirmed = window.confirm(
-//     '⚠️ WARNING!\n\nThis will permanently delete ALL documents and uploaded files.\n\nContinue?'
-//   );
-
-//   if (!confirmed) return;
-
-//   try {
-//     const result = await api.deleteAllDocuments();
-
-//     alert(
-//       `${result.deletedDocuments} documents deleted successfully.`
-//     );
-
-//     setDocuments([]);
-//   } catch (error) {
-//     console.error('Remove all documents error:', error);
-
-//     alert(
-//       error.message || 'Failed to delete all documents'
-//     );
-//   }
-// };
-
-// function mapDoc(doc) {
-//   return { id: uid(doc), originalName: doc.originalName };
-// }
-
-// function UploadModal({ domains, onClose, onDone }) {
-//   const [title, setTitle] = useState('');
-//   const [description, setDescription] = useState('');
-//   const [domainId, setDomainId] = useState(domains[0] ? uid(domains[0]) : '');
-//   const [file, setFile] = useState(null);
-//   const [busy, setBusy] = useState(false);
-//   const { toast, toastError } = useToast();
-
-//   const submit = async () => {
-//     if (!title.trim() || !domainId || !file) {
-//       toastError('Title, domain and a file are required');
-//       return;
-//     }
-//     setBusy(true);
-//     try {
-//       await api.uploadDocument({ title: title.trim(), description, domainId, file });
-//       toast('Material uploaded');
-//       onDone();
-//     } catch (e) {
-//       toastError(e);
-//     } finally {
-//       setBusy(false);
-//     }
-//   };
-
-//   return (
-//     <Modal
-//       title="Upload material"
-//       onClose={onClose}
-//       footer={
-//         <>
-//           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-//           <Button variant="cyan" onClick={submit} disabled={busy}>{busy ? <Spinner sm /> : 'Upload'}</Button>
-//         </>
-//       }
-//     >
-//       <div className="field">
-//         <label>Domain</label>
-//         <select className="select" value={domainId} onChange={(e) => setDomainId(e.target.value)}>
-//           {domains.map((d) => (
-//             <option key={uid(d)} value={uid(d)}>{d.icon} {d.name}</option>
-//           ))}
-//         </select>
-//       </div>
-//       <div className="field">
-//         <label>Title</label>
-//         <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. STA basics reference" />
-//       </div>
-//       <div className="field">
-//         <label>Description (optional)</label>
-//         <textarea className="textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this material about?" />
-//       </div>
-//       <div className="field">
-//         <label>File (PPT, DOC, PDF, XLS, images, zip)</label>
-//         <input
-//           className="input"
-//           type="file"
-//           style={{ paddingTop: 10 }}
-//           accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.zip"
-//           onChange={(e) => setFile(e.target.files?.[0] || null)}
-//         />
-//       </div>
-//     </Modal>
-//   );
-// }
-
-
-// function FilePreviewModal({ doc, onClose }) {
-//   const [previewUrl, setPreviewUrl] = useState('');
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState('');
-
-//   const extension =
-//     doc.originalName
-//       ?.split('.')
-//       .pop()
-//       ?.toLowerCase() || '';
-
-//  useEffect(() => {
-//   try {
-//     setLoading(true);
-//     setError('');
-
-//     if (!doc.cloudinaryUrl) {
-//       throw new Error('Cloudinary PDF URL not found');
-//     }
-
-//     // Directly use the PDF stored in Cloudinary
-//     setPreviewUrl(doc.cloudinaryUrl);
-
-//   } catch (e) {
-//     console.error('Preview error:', e);
-//     setError(
-//       e.message || 'Unable to preview file'
-//     );
-//   } finally {
-//     setLoading(false);
-//   }
-// }, [doc]);
-
-//   const isPdf = extension === 'pdf';
-
-//   const isOffice = [
-//     'ppt',
-//     'pptx',
-//     'doc',
-//     'docx',
-//     'xls',
-//     'xlsx',
-//   ].includes(extension);
-
-//   const isImage = [
-//     'png',
-//     'jpg',
-//     'jpeg',
-//     'gif',
-//     'webp',
-//   ].includes(extension);
-
-//   return (
-//     <Modal
-//       title={`${fileIcon(doc.originalName)} ${doc.title}`}
-//       onClose={onClose}
-//       fullScreen
-//     >
-//       {/* LOADING */}
-//       {loading && (
-//         <div
-//           style={{
-//             width: '100%',
-//             height: 'calc(100vh - 70px)',
-//             display: 'flex',
-//             alignItems: 'center',
-//             justifyContent: 'center',
-//             flexDirection: 'column',
-//             gap: 12,
-//           }}
-//         >
-//           <Spinner />
-
-//           <div className="muted">
-//             Preparing preview...
-//           </div>
-//         </div>
-//       )}
-
-//       {/* ERROR */}
-//       {!loading && error && (
-//         <div
-//           style={{
-//             width: '100%',
-//             height: 'calc(100vh - 70px)',
-//             display: 'flex',
-//             alignItems: 'center',
-//             justifyContent: 'center',
-//             flexDirection: 'column',
-//             gap: 12,
-//             textAlign: 'center',
-//           }}
-//         >
-//           <div style={{ fontSize: 50 }}>
-//             ⚠️
-//           </div>
-
-//           <h3>Unable to preview file</h3>
-
-//           <p className="muted">
-//             {error}
-//           </p>
-//         </div>
-//       )}
-
-//       {/* PDF + OFFICE */}
-//       {!loading &&
-//         !error &&
-//         previewUrl &&
-//         (isPdf || isOffice) && (
-//           <iframe
-//             src={`${previewUrl}#toolbar=0`}
-//             title={doc.title}
-//             style={{
-//               width: '100%',
-//               height: 'calc(100vh - 70px)',
-//               border: 'none',
-//               display: 'block',
-//               background: '#fff',
-//               margin: 0,
-//               padding: 0,
-//             }}
-//           />
-//         )}
-
-//       {/* IMAGE */}
-//       {!loading &&
-//         !error &&
-//         previewUrl &&
-//         isImage && (
-//           <div
-//             style={{
-//               width: '100%',
-//               height: 'calc(100vh - 70px)',
-//               display: 'flex',
-//               alignItems: 'center',
-//               justifyContent: 'center',
-//               background: '#f5f7fa',
-//               overflow: 'auto',
-//               padding: 20,
-//               boxSizing: 'border-box',
-//             }}
-//           >
-//             <img
-//               src={previewUrl}
-//               alt={doc.title}
-//               style={{
-//                 maxWidth: '100%',
-//                 maxHeight: '100%',
-//                 objectFit: 'contain',
-//               }}
-//             />
-//           </div>
-//         )}
-
-//       {/* UNSUPPORTED */}
-//       {!loading &&
-//         !error &&
-//         !previewUrl &&
-//         !isPdf &&
-//         !isOffice &&
-//         !isImage && (
-//           <div
-//             style={{
-//               width: '100%',
-//               height: 'calc(100vh - 70px)',
-//               display: 'flex',
-//               alignItems: 'center',
-//               justifyContent: 'center',
-//               flexDirection: 'column',
-//               textAlign: 'center',
-//               gap: 15,
-//             }}
-//           >
-//             <div style={{ fontSize: 70 }}>
-//               {fileIcon(doc.originalName)}
-//             </div>
-
-//             <h3>{doc.originalName}</h3>
-
-//             <p className="muted">
-//               This file type cannot be previewed
-//               in the browser.
-//             </p>
-//           </div>
-//         )}
-//     </Modal>
-//   );
-
-
-// }
-
-
-
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, uid } from '../../api/client';
@@ -662,7 +12,6 @@ import {
 import { useToast } from '../../components/Toast';
 import { useAuth } from '../../auth/AuthContext';
 import { ChecklistModal, WriteupModal } from './DocumentDetail';
-
 
 function ConfirmModal({ title = 'Are you sure?', message, confirmLabel = 'Delete', onConfirm, onClose, busy }) {
   return (
@@ -725,7 +74,7 @@ const fileIcon = (name = '') => {
 export default function MaterialsPage() {
   const [domains, setDomains] = useState([]);
   const [docs, setDocs] = useState([]);
-
+  const { user } = useAuth();
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -736,63 +85,62 @@ export default function MaterialsPage() {
   const [domainChecklist, setDomainChecklist] = useState(null);
   const [showChecklistForm, setShowChecklistForm] = useState(false);
 
-
   const [showWriteup, setShowWriteup] = useState(false);
   const [domainWriteup, setDomainWriteup] = useState(null);
+  const [exercises, setExercises] = useState([]);
+  const [showExForm, setShowExForm] = useState(false);
+  const canEditEx = ['admin','bu','manager'].includes(String(user?.role || '').toLowerCase());
+  useEffect(() => {
+    if (!filter) { setExercises([]); return; }
+    api.listExercises(filter).then((r) => setExercises(r.exercises || [])).catch(() => setExercises([]));
+  }, [filter]);
+  const reloadExercises = () => filter && api.listExercises(filter).then((r) => setExercises(r.exercises || [])).catch(() => {});
   const [showWriteupForm, setShowWriteupForm] = useState(false);
 
-  const [confirm, setConfirm] = useState(null); // { message, onConfirm }
+  const [confirm, setConfirm] = useState(null);
   const { toast, toastError } = useToast();
   const nav = useNavigate();
-  const { user } = useAuth();
+
+  const canFilterCat = ['admin','cto'].includes(String(user?.role || '').toLowerCase());
+  const [matCatFilter, setMatCatFilter] = useState('');
   const [editChecklist, setEditChecklist] = useState(null);
   const [editWriteup, setEditWriteup] = useState(null);
   const isAdmin = String(user?.role || '').toLowerCase() === 'admin';
-
-  /*
-   * ---------------------------------------------------------
-   * LOAD DOMAINS + DOCUMENTS
-   * ---------------------------------------------------------
-   */
+  const canEdit = ['admin', 'bu', 'manager'].includes(String(user?.role || '').toLowerCase());
   const load = async () => {
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    // always load domains
-    const domainsResponse = await api.listDomains();
-    const domainList = Array.isArray(domainsResponse)
-      ? domainsResponse
-      : Array.isArray(domainsResponse?.domains)
-        ? domainsResponse.domains
-        : [];
-    setDomains(domainList);
-
-    // only fetch documents once a domain is selected
-    if (filter) {
-      const documentsResponse = await api.listDocuments(filter);
-      const documentList = Array.isArray(documentsResponse)
-        ? documentsResponse
-        : Array.isArray(documentsResponse?.documents)
-          ? documentsResponse.documents
+    try {
+      const domainsResponse = await api.listDomains();
+      const domainList = Array.isArray(domainsResponse)
+        ? domainsResponse
+        : Array.isArray(domainsResponse?.domains)
+          ? domainsResponse.domains
           : [];
-      setDocs(documentList);
-    } else {
-      setDocs([]); // nothing selected yet → show nothing
+      setDomains(domainList);
+
+      if (filter) {
+        const documentsResponse = await api.listDocuments(filter);
+        const documentList = Array.isArray(documentsResponse)
+          ? documentsResponse
+          : Array.isArray(documentsResponse?.documents)
+            ? documentsResponse.documents
+            : [];
+        setDocs(documentList);
+      } else {
+        setDocs([]);
+      }
+    } catch (e) {
+      toastError(e);
+      setDomains([]);
+      setDocs([]);
+    } finally {
+      setLoading(false);
     }
-  } catch (e) {
-    console.error('Materials load error:', e);
-    toastError(e);
-    setDomains([]);
-    setDocs([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     load();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   useEffect(() => {
@@ -807,45 +155,26 @@ export default function MaterialsPage() {
 
   useEffect(() => {
     if (domains.length === 0) {
-      if (filter) setFilter('');      // no domains → clear selection
+      if (filter) setFilter('');
       return;
     }
-    // if nothing selected, or the selected one no longer exists, pick index 0
     const stillExists = domains.some((d) => uid(d) === filter);
     if (!filter || !stillExists) {
       setFilter(uid(domains[0]));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [domains]);
 
-  /*
-   * ---------------------------------------------------------
-   * DEBUG API
-   * ---------------------------------------------------------
-   */
   useEffect(() => {
-    console.log('API OBJECT:', api);
   }, []);
 
-  /*
-   * ---------------------------------------------------------
-   * DOWNLOAD
-   * ---------------------------------------------------------
-   */
   const download = async (doc) => {
     try {
       await api.downloadDocument(mapDoc(doc));
     } catch (e) {
-      console.error('Download error:', e);
       toastError(e);
     }
   };
 
-  /*
-   * ---------------------------------------------------------
-   * DELETE SINGLE DOCUMENT
-   * ---------------------------------------------------------
-   */
   const remove = async (doc) => {
     if (!window.confirm('Delete this material?')) {
       return;
@@ -858,16 +187,10 @@ export default function MaterialsPage() {
 
       await load();
     } catch (e) {
-      console.error('Delete document error:', e);
       toastError(e);
     }
   };
 
-  /*
-   * ---------------------------------------------------------
-   * DELETE ALL DOCUMENTS
-   * ---------------------------------------------------------
-   */
   const handleRemoveAllDocuments = async () => {
     const confirmed = window.confirm(
       '⚠️ WARNING!\n\n' +
@@ -886,26 +209,14 @@ export default function MaterialsPage() {
         `${result?.deletedDocuments || 0} documents deleted successfully.`
       );
 
-      // IMPORTANT:
-      // Use docs/setDocs, not documents/setDocuments.
       setDocs([]);
     } catch (error) {
-      console.error('Remove all documents error:', error);
-
       alert(error?.message || 'Failed to delete all documents');
     }
   };
 
-  /*
-   * ---------------------------------------------------------
-   * UI
-   * ---------------------------------------------------------
-   */
   return (
     <>
-      {/* =====================================================
-          PAGE HEADER
-          ===================================================== */}
       <div
         className="page-head"
         style={{
@@ -922,15 +233,13 @@ export default function MaterialsPage() {
             checklists and write-ups.
           </p>
         </div>
-
-        <Button
-          variant="cyan"
-          onClick={() => setShowUpload(true)}
-        >
-          + Upload material
-        </Button>
-
-
+        {canEdit && (
+          <Button
+            variant="cyan"
+            onClick={() => setShowUpload(true)}
+          >
+            + Upload material
+          </Button>)}
 
         {String(user?.role || '').toLowerCase() === 'admin' && (
           <Button
@@ -942,124 +251,165 @@ export default function MaterialsPage() {
         )}
       </div>
 
-      {/* =====================================================
-          DOMAIN FILTERS
-          ===================================================== */}
+      {canFilterCat && (
+        <div className="row gap-8" style={{ alignItems: 'center', marginBottom: 10 }}>
+          <span className="muted" style={{ fontSize: 12.5 }}>Category:</span>
+          <select
+            className="select"
+            style={{ maxWidth: 220 }}
+            value={matCatFilter}
+            onChange={(e) => { setMatCatFilter(e.target.value); setFilter(''); }}
+          >
+            <option value="">All categories</option>
+            {[...new Set(domains.map((d) => d.categoryName).filter(Boolean))].sort().map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="chips">
-        {/* <button
-          className={`chip ${!filter ? 'active' : ''}`}
-          onClick={() => setFilter('')}
-        >
-          All
-        </button> */}
-
-        {domains.map((domain) => {
-          const domainId = uid(domain);
-
-          return (
-            <button
-              key={domainId}
-              className={`chip ${filter === domainId ? 'active' : ''
-                }`}
-              onClick={() => setFilter(domainId)}
-            >
-              {domain.icon} {domain.name}
-            </button>
-          );
-        })}
+        {domains
+          .filter((d) => !matCatFilter || d.categoryName === matCatFilter)
+          .map((domain) => {
+            const domainId = uid(domain);
+            return (
+              <button
+                key={domainId}
+                className={`chip ${filter === domainId ? 'active' : ''}`}
+                onClick={() => setFilter(domainId)}
+              >
+                {domain.icon} {domain.name}
+              </button>
+            );
+          })}
+        {domains.filter((d) => !matCatFilter || d.categoryName === matCatFilter).length === 0 && (
+          <span className="muted" style={{ fontSize: 12.5, padding: '6px 4px' }}>No domains in this category.</span>
+        )}
       </div>
 
       {filter && (
-        <section className="card" style={{ padding: 18, margin: '16px 0' }}>
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 750, color: 'var(--navy)' }}>
-                ☑️ {domains.find((d) => uid(d) === filter)?.name || ' '} Checklist
+        <div
+          className="training-cards-row"
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '16px 0' }}
+        >
+          <section className="card" style={{ padding: 18, margin: 0 }}>
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div>
+                <div style={{ textTransform: 'capitalize', fontSize: 15, fontWeight: 750, color: 'var(--navy)' }}>
+                  ☑️ {domains.find((d) => uid(d) === filter)?.key || ' '} Checklist
+                </div>
+                <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+                  {domainChecklist
+                    ? `${domainChecklist.title} · ${(domainChecklist.items || []).length} items`
+                    : 'No checklist for this domain yet.'}
+                </div>
               </div>
-              <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
-                {domainChecklist
-                  ? `${domainChecklist.title} · ${(domainChecklist.items || []).length} items`
-                  : 'No checklist for this domain yet.'}
+
+              <div className="row gap-8">
+                {domainChecklist ? (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => setShowChecklist(true)}>👁 View</Button>
+                      {['admin', 'manager'].includes(String(user?.role || '').toLowerCase()) && (
+                    <Button variant="ghost" size="sm" onClick={() => setEditChecklist(domainChecklist)}>✏️ Edit</Button>
+                       )}
+                        {isAdmin && (
+                      <Button variant="danger" size="sm" onClick={() => setConfirm({
+                        message: 'Do you really want to delete this checklist? This cannot be undone.',
+                        onConfirm: async () => {
+                          try {
+                            await api.deleteChecklist(domainChecklist._id);
+                            setDomainChecklist(null);
+                            toast('Checklist deleted');
+                          } catch (e) { toastError(e); }
+                          finally { setConfirm(null); }
+                        },
+                      })}>Delete</Button>
+                    )}
+                  </>
+                ) : (canEdit &&
+                  
+                   <Button variant="cyan" size="sm" onClick={() => setShowChecklistForm(true)}>+ Add checklist</Button>
+                )}
               </div>
             </div>
+          </section>
 
-            <div className="row gap-8">
-              {domainChecklist ? (
-                <>
-                  <Button variant="ghost" size="sm" onClick={() => setShowChecklist(true)}>👁 View</Button>
-                  <Button variant="ghost" size="sm" onClick={() => setEditChecklist(domainChecklist)}>✏️ Edit</Button>
-                  {isAdmin && (
-                    <Button variant="danger" size="sm" onClick={() => setConfirm({
-                      message: 'Do you really want to delete this checklist? This cannot be undone.',
-                      onConfirm: async () => {
-                        try {
-                          await api.deleteChecklist(domainChecklist._id);
-                          setDomainChecklist(null);
-                          toast('Checklist deleted');
-                        } catch (e) { toastError(e); }
-                        finally { setConfirm(null); }
-                      },
-                    })}>Delete</Button>
-                  )}
-                </>
-              ) : (
-                <Button variant="cyan" size="sm" onClick={() => setShowChecklistForm(true)}>+ Add checklist</Button>
-              )}
+          <section className="card" style={{ padding: 18, margin: 0 }}>
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div>
+                <div style={{ textTransform: 'capitalize', fontSize: 15, fontWeight: 750, color: 'var(--navy)' }}>
+                  ✍️ {domains.find((d) => uid(d) === filter)?.key || 'Domain'} write-up
+                </div>
+                <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+                  {domainWriteup
+                    ? `${domainWriteup.title} · ${(domainWriteup.questions || []).length} questions`
+                    : 'No write-up for this domain yet.'}
+                </div>
+              </div>
+              <div className="row gap-8">
+                {domainWriteup ? (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => setShowWriteup(true)}>👁 View</Button>
+                    {['admin', 'manager'].includes(String(user?.role || '').toLowerCase()) && (
+                      <Button variant="ghost" size="sm" onClick={() => setEditWriteup(domainWriteup)}>✏️ Edit</Button>
+                    )}
+                    {isAdmin && (
+                      <Button variant="danger" size="sm" onClick={() => setConfirm({
+                        message: 'Do you really want to delete this write-up? This cannot be undone.',
+                        onConfirm: async () => {
+                          try {
+                            await api.deleteWriteup(domainWriteup._id);
+                            setDomainWriteup(null);
+                            toast('Write-up deleted');
+                          } catch (e) { toastError(e); }
+                          finally { setConfirm(null); }
+                        },
+                      })}>Delete</Button>
+                    )}
+                  </>
+                ) : (canEdit &&
+                  <Button variant="cyan" size="sm" onClick={() => setShowWriteupForm(true)}>+ Add write-up</Button>
+                )}
+              </div>
             </div>
-          </div>
-
-
-        </section>
+          </section>
+        </div>
       )}
 
       {filter && (
         <section className="card" style={{ padding: 18, margin: '16px 0' }}>
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 750, color: 'var(--navy)' }}>
-                ✍️ {domains.find((d) => uid(d) === filter)?.name || 'Domain'} write-up
-              </div>
-              <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
-                {domainWriteup
-                  ? `${domainWriteup.title} · ${(domainWriteup.questions || []).length} questions`
-                  : 'No write-up for this domain yet.'}
-              </div>
+              <div style={{ fontSize: 15, fontWeight: 750, color: 'var(--navy)' }}>🧪 {domains.find((d) => uid(d) === filter)?.name || 'Domain'} exercises</div>
+              <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{exercises.length} exercise(s)</div>
             </div>
-            <div className="row gap-8">
-              {domainWriteup ? (
-                <>
-                  <Button variant="ghost" size="sm" onClick={() => setShowWriteup(true)}>👁 View</Button>
-
-                  {['admin', 'manager'].includes(String(user?.role || '').toLowerCase()) && (
-                    <Button variant="ghost" size="sm" onClick={() => { console.log('editWriteup:', domainWriteup); setEditWriteup(domainWriteup); }}>✏️ Edit</Button>
-                  )}
-                  {isAdmin && (
-                    <Button variant="danger" size="sm" onClick={() => setConfirm({
-                      message: 'Do you really want to delete this write-up? This cannot be undone.',
-                      onConfirm: async () => {
-                        try {
-                          await api.deleteWriteup(domainWriteup._id);
-                          setDomainWriteup(null);
-                          toast('Write-up deleted');
-                        } catch (e) { toastError(e); }
-                        finally { setConfirm(null); }
-                      },
-                    })}>Delete</Button>
-                  )}
-                </>
-              ) : (
-                <Button variant="cyan" size="sm" onClick={() => setShowWriteupForm(true)}>+ Add write-up</Button>
-              )}
-            </div>
+            {canEditEx && <Button variant="cyan" size="sm" onClick={() => setShowExForm(true)}>+ Add exercise</Button>}
           </div>
-
-
+          {exercises.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              {exercises.map((ex) => (
+                <div key={ex._id} className="row" style={{ justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid #eef2f7' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{ex.title}</div>
+                    <div className="muted" style={{ fontSize: 11 }}>{ex.refType === 'file' ? 'File' : ex.refType === 'link' ? 'Link' : 'No reference'}</div>
+                  </div>
+                  <div className="row gap-8">
+                    {(ex.refFileUrl || ex.refLink) && <a className="btn link" href={ex.refFileUrl || ex.refLink} target="_blank" rel="noreferrer">Open</a>}
+                    {canEditEx && (
+                      <Button variant="danger" size="sm" onClick={async () => {
+                        if (!window.confirm('Delete this exercise?')) return;
+                        try { await api.deleteExercise(ex._id); reloadExercises(); toast('Deleted'); } catch (e) { toastError(e); }
+                      }}>Delete</Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
-      {/* =====================================================
-          DOCUMENT LIST
-          ===================================================== */}
       {loading ? (
         <LoadingPage />
       ) : docs.length === 0 ? (
@@ -1078,11 +428,7 @@ export default function MaterialsPage() {
                 style={{
                   cursor: 'pointer',
                 }}
-              // onClick={() =>
-              //   nav(`/document/${documentId}`)
-              // }
               >
-                {/* DOCUMENT HEADER */}
                 <div className="row gap-12">
                   <div
                     style={{
@@ -1127,7 +473,6 @@ export default function MaterialsPage() {
                   </div>
                 </div>
 
-                {/* DOCUMENT FOOTER */}
                 <div
                   className="row"
                   style={{
@@ -1143,7 +488,6 @@ export default function MaterialsPage() {
                     className="row gap-8"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {/* PREVIEW */}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1152,17 +496,6 @@ export default function MaterialsPage() {
                       👁
                     </Button>
 
-                    {/* DOWNLOAD
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => download(doc)}
-                    >
-                      &#x2913;
-                    </Button>
-                    */}
-
-                    {/* DELETE */}
                     {(user?.role || '').toLowerCase() === 'admin' && (
                       <Button
                         variant="danger"
@@ -1185,7 +518,6 @@ export default function MaterialsPage() {
           })}
         </div>
       )}
-
 
       {editWriteup && (
         <WriteupModal
@@ -1211,9 +543,6 @@ export default function MaterialsPage() {
           }}
         />
       )}
-      {/* =====================================================
-          UPLOAD MODAL
-          ===================================================== */}
       {showUpload && (
         <UploadModal
           domains={domains}
@@ -1225,9 +554,6 @@ export default function MaterialsPage() {
         />
       )}
 
-      {/* =====================================================
-          FILE PREVIEW MODAL
-          ===================================================== */}
       {previewDoc && (
         <FilePreviewModal
           doc={previewDoc}
@@ -1253,7 +579,6 @@ export default function MaterialsPage() {
             const items = domainChecklist.items || [];
             if (items.length === 0) return <div className="muted">This checklist has no items.</div>;
 
-            // group: section -> topic -> items
             const secs = {};
             items.forEach((it) => {
               const s = it.section || it.category || 'General';
@@ -1323,6 +648,10 @@ export default function MaterialsPage() {
         />
       )}
 
+      {showExForm && (
+        <ExerciseModal domainId={filter} onClose={() => setShowExForm(false)} onDone={() => { setShowExForm(false); reloadExercises(); toast('Exercise added'); }} />
+      )}
+
       {confirm && (
         <ConfirmModal
           message={confirm.message}
@@ -1335,11 +664,6 @@ export default function MaterialsPage() {
   );
 }
 
-/*
- * ============================================================
- * DOCUMENT MAPPER
- * ============================================================
- */
 function mapDoc(doc) {
   return {
     id: uid(doc),
@@ -1347,11 +671,6 @@ function mapDoc(doc) {
   };
 }
 
-/*
- * ============================================================
- * UPLOAD MODAL
- * ============================================================
- */
 function UploadModal({ domains = [], onClose, onDone }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -1368,21 +687,12 @@ function UploadModal({ domains = [], onClose, onDone }) {
 
   const { toast, toastError } = useToast();
 
-  /*
-   * If domains load after component mount,
-   * automatically select first domain.
-   */
   useEffect(() => {
     if (!domainId && domains.length > 0) {
       setDomainId(uid(domains[0]));
     }
   }, [domains, domainId]);
 
-  /*
-   * ---------------------------------------------------------
-   * SUBMIT
-   * ---------------------------------------------------------
-   */
   const submit = async () => {
     if (!title.trim() || !domainId) { toastError('Title and domain are required'); return; }
     setBusy(true);
@@ -1400,7 +710,7 @@ function UploadModal({ domains = [], onClose, onDone }) {
       }
       toast('Material added');
       onDone();
-    } catch (e) { console.error('Upload error:', e); toastError(e); }
+    } catch (e) {  toastError(e); }
     finally { setBusy(false); }
   };
 
@@ -1428,7 +738,6 @@ function UploadModal({ domains = [], onClose, onDone }) {
         </>
       }
     >
-      {/* DOMAIN */}
       <div className="field">
         <label>Domain</label>
 
@@ -1455,7 +764,6 @@ function UploadModal({ domains = [], onClose, onDone }) {
         </select>
       </div>
 
-      {/* TITLE */}
       <div className="field">
         <label>Title</label>
 
@@ -1467,7 +775,6 @@ function UploadModal({ domains = [], onClose, onDone }) {
         />
       </div>
 
-      {/* DESCRIPTION */}
       <div className="field">
         <label>Description (optional)</label>
 
@@ -1479,7 +786,6 @@ function UploadModal({ domains = [], onClose, onDone }) {
         />
       </div>
 
-      {/* FILE */}
       <div className="field">
         <label>Material type</label>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -1496,7 +802,6 @@ function UploadModal({ domains = [], onClose, onDone }) {
         </div>
       </div>
 
-      {/* FILE INPUT */}
       {type === 'file' && (
         <div className="field">
           <label>File (PPT, DOC, PDF, XLS, images, zip)</label>
@@ -1515,7 +820,6 @@ function UploadModal({ domains = [], onClose, onDone }) {
         </div>
       )}
 
-      {/* YOUTUBE INPUT */}
       {type === 'youtube' && (
         <div className="field">
           <label>YouTube link</label>
@@ -1528,7 +832,6 @@ function UploadModal({ domains = [], onClose, onDone }) {
         </div>
       )}
 
-      {/* HTML INPUT */}
       {type === 'html' && (
         <div className="field">
           <label>HTML file</label>
@@ -1545,11 +848,6 @@ function UploadModal({ domains = [], onClose, onDone }) {
   );
 }
 
-/*
- * ============================================================
- * FILE PREVIEW MODAL
- * ============================================================
- */
 function FilePreviewModal({ doc, onClose }) {
   const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(true);
@@ -1561,11 +859,6 @@ function FilePreviewModal({ doc, onClose }) {
       .pop()
       ?.toLowerCase() || '';
 
-  /*
-   * ---------------------------------------------------------
-   * PREPARE PREVIEW
-   * ---------------------------------------------------------
-   */
   useEffect(() => {
     try {
       setLoading(true);
@@ -1582,16 +875,8 @@ function FilePreviewModal({ doc, onClose }) {
         );
       }
 
-      /*
-       * The backend already converts Office documents
-       * to PDF and stores the PDF URL in Cloudinary.
-       *
-       * Therefore we directly use cloudinaryUrl.
-       */
       setPreviewUrl(doc.cloudinaryUrl);
     } catch (e) {
-      console.error('Preview error:', e);
-
       setError(
         e?.message || 'Unable to preview file'
       );
@@ -1600,11 +885,6 @@ function FilePreviewModal({ doc, onClose }) {
     }
   }, [doc]);
 
-  /*
-   * ---------------------------------------------------------
-   * FILE TYPES
-   * ---------------------------------------------------------
-   */
   const isPdf = extension === 'pdf';
 
   const isOffice = [
@@ -1627,11 +907,6 @@ function FilePreviewModal({ doc, onClose }) {
   const isYoutube = doc?.type === 'youtube';
   const isHtml = doc?.type === 'html' || extension === 'html' || extension === 'htm';
 
-  /*
-   * ---------------------------------------------------------
-   * UI
-   * ---------------------------------------------------------
-   */
   return (
     <Modal
       title={`${fileIcon(doc?.originalName)} ${doc?.title || 'Document preview'
@@ -1639,9 +914,6 @@ function FilePreviewModal({ doc, onClose }) {
       onClose={onClose}
       fullScreen
     >
-      {/* ===================================================
-          LOADING
-          =================================================== */}
       {loading && (
         <div
           style={{
@@ -1662,9 +934,6 @@ function FilePreviewModal({ doc, onClose }) {
         </div>
       )}
 
-      {/* ===================================================
-          ERROR
-          =================================================== */}
       {!loading && error && (
         <div
           style={{
@@ -1703,9 +972,6 @@ function FilePreviewModal({ doc, onClose }) {
         </div>
       )}
 
-      {/* ===================================================
-          PDF / OFFICE
-          =================================================== */}
       {!loading &&
         !error &&
         previewUrl &&
@@ -1725,7 +991,6 @@ function FilePreviewModal({ doc, onClose }) {
           />
         )}
 
-      {/* YOUTUBE */}
       {!loading && !error && previewUrl && isYoutube && (
         <iframe
           src={previewUrl}
@@ -1736,7 +1001,6 @@ function FilePreviewModal({ doc, onClose }) {
         />
       )}
 
-      {/* HTML */}
       {!loading && !error && previewUrl && isHtml && (
         <iframe
           src={previewUrl}
@@ -1746,10 +1010,6 @@ function FilePreviewModal({ doc, onClose }) {
         />
       )}
 
-
-      {/* ===================================================
-          IMAGE
-          =================================================== */}
       {!loading &&
         !error &&
         previewUrl &&
@@ -1779,52 +1039,39 @@ function FilePreviewModal({ doc, onClose }) {
           </div>
         )}
 
-      {/* ===================================================
-          UNSUPPORTED
-          =================================================== */}
-      {/* {!loading &&
-        !error &&
-        previewUrl &&
-        !isPdf &&
-        !isOffice &&
-        !isImage && (
-          <div
-            style={{
-              width: '100%',
-              height: 'calc(100vh - 70px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'column',
-              textAlign: 'center',
-              gap: 15,
-              padding: 20,
-              boxSizing: 'border-box',
-            }}
-          >
-            <div style={{ fontSize: 70 }}>
-              {fileIcon(doc?.originalName)}
-            </div>
+    </Modal>
+  );
+}
 
-            <h3>{doc?.originalName}</h3>
-
-            <p className="muted">
-              This file type cannot be previewed
-              in the browser.
-            </p>
-
-            {doc?.cloudinaryUrl && (
-              <a
-                href={doc.cloudinaryUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="btn"
-              >
-                Open file
-              </a>
-            )}
-          </div>
-        )} */}
+function ExerciseModal({ domainId, onClose, onDone }) {
+  const [title, setTitle] = useState('');
+  const [instructions, setInstructions] = useState('');
+  const [refType, setRefType] = useState('file');
+  const [refLink, setRefLink] = useState('');
+  const [file, setFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const { toastError } = useToast();
+  const submit = async () => {
+    if (!title.trim()) { toastError('Title required'); return; }
+    if (refType === 'file' && !file) { toastError('Choose a file'); return; }
+    if (refType === 'link' && !refLink.trim()) { toastError('Enter a link'); return; }
+    setBusy(true);
+    try { await api.createExercise({ domainId, title: title.trim(), instructions, refType, refLink, file }); onDone(); }
+    catch (e) { toastError(e); } finally { setBusy(false); }
+  };
+  return (
+    <Modal title="Add exercise" onClose={onClose} footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="cyan" onClick={submit} disabled={busy}>{busy ? <Spinner sm /> : 'Create'}</Button></>}>
+      <div className="field"><label>Title</label><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Build a CDC report" /></div>
+      <div className="field"><label>Instructions</label><textarea className="textarea" value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Steps the engineer should follow…" /></div>
+      <div className="field"><label>Reference</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[['file','File'],['link','Link'],['none','None']].map(([k,l]) => (
+            <button key={k} type="button" onClick={() => setRefType(k)} style={{ flex:1, padding:'8px', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer', border: refType===k?'1px solid #08a6c7':'1px solid #dbe3ec', background: refType===k?'#eefbfe':'#fff', color: refType===k?'#0284a8':'#475569' }}>{l}</button>
+          ))}
+        </div>
+      </div>
+      {refType === 'file' && <div className="field"><input className="input" type="file" style={{ paddingTop:10 }} onChange={(e) => setFile(e.target.files?.[0] || null)} /></div>}
+      {refType === 'link' && <div className="field"><input className="input" value={refLink} onChange={(e) => setRefLink(e.target.value)} placeholder="https://…" /></div>}
     </Modal>
   );
 }

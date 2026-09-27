@@ -25,7 +25,7 @@ export default function EmployeeDomains() {
       } finally {
         setLoading(false);
       }
-    })(); // eslint-disable-next-line
+    })();
   }, []);
 
   if (loading) return <LoadingPage />;
@@ -40,53 +40,9 @@ export default function EmployeeDomains() {
         <Empty>No domains available yet.</Empty>
       ) : (
         <div className="grid grid-auto">
-          {/* {domains.map((domain) => {
-            const locked = !domain.assigned;
-
-            return (
-              <div
-                key={domain._id}
-                className="card"
-                onClick={() => {
-                  if (locked) return;
-
-                  nav(`/domains/${domain._id}`);
-                }}
-                style={{
-                  cursor: locked ? 'not-allowed' : 'pointer',
-                  opacity: locked ? 0.55 : 1,
-                  position: 'relative',
-                }}
-              >
-                <div
-                  className="row"
-                  style={{
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <h3>{domain.name}</h3>
-
-                  {locked ? (
-                    <span>🔒 Locked</span>
-                  ) : (
-                    <span>✓ Assigned</span>
-                  )}
-                </div>
-
-                <p>{domain.description}</p>
-
-                {locked && (
-                  <div className="muted">
-                    This domain has not been assigned to you.
-                  </div>
-                )}
-              </div>
-            );
-          })} */}
 
          {[...domains]
   .sort((a, b) => {
-    // Assigned domains first
     if (a.assigned && !b.assigned) return -1;
     if (!a.assigned && b.assigned) return 1;
     return 0;

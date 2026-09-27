@@ -8,7 +8,7 @@ export default function DoWriteup() {
   const { id } = useParams();
   const nav = useNavigate();
   const [writeup, setWriteup] = useState(null);
-  const [answers, setAnswers] = useState({}); // qId -> text
+  const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast, toastError } = useToast();
@@ -31,7 +31,7 @@ export default function DoWriteup() {
       } finally {
         setLoading(false);
       }
-    })(); // eslint-disable-next-line
+    })();
   }, [id]);
 
   useEffect(() => {
@@ -62,7 +62,6 @@ export default function DoWriteup() {
 
   const onVisibility = () => {
     if (document.visibilityState === 'hidden') {
-      // tab is no longer showing → switched tab or minimized
       leave('switched tab or minimized window');
     } else if (leftAt) {
       back();
@@ -70,7 +69,6 @@ export default function DoWriteup() {
   };
 
   const onBlur = () => {
-    // window lost focus but may still be visible → another window/app on top
     if (document.visibilityState !== 'hidden' && !leftAt) {
       leave('switched to another window or app');
     }
@@ -93,7 +91,6 @@ export default function DoWriteup() {
 
   const answered = Object.values(answers).filter((a) => a.trim()).length;
 
-  // group by section
   const sections = {};
   writeup.questions.forEach((q) => {
     (sections[q.section] = sections[q.section] || []).push(q);
@@ -114,7 +111,6 @@ export default function DoWriteup() {
 
   let n = 0;
 
-
   const guard = {
     onCopy: (e) => e.preventDefault(),
     onCut: (e) => e.preventDefault(),
@@ -122,7 +118,6 @@ export default function DoWriteup() {
     onKeyDown: (e) => {
       const k = (e.key || '').toLowerCase();
       if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'x', 'u', 's', 'p'].includes(k)) {
-        // allow inside the answer textarea only
         if (e.target.tagName !== 'TEXTAREA') e.preventDefault();
       }
     },

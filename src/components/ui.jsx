@@ -34,7 +34,6 @@ export function Button({ variant = 'primary', size, block, children, ...rest }) 
   );
 }
 
-/** progress percent -> semantic colors, matching the original mockup buckets */
 export function pctColors(pct) {
   if (pct == null || pct === 0) return { bg: 'var(--neutral-bg)', fg: '#9aa1b5' };
   if (pct < 30) return { bg: 'var(--warning-bg)', fg: 'var(--warning)' };
@@ -120,4 +119,3 @@ export function initials(name = '') {
   if (!p[0]) return '?';
   return (p.length === 1 ? p[0][0] : p[0][0] + p[p.length - 1][0]).toUpperCase();
 }
-

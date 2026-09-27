@@ -4,6 +4,8 @@ import { ScoreRing, Badge, ProgressRow, LoadingPage, Empty, pctColors } from '..
 import { useToast } from '../../components/Toast';
 
 export default function MyProgress() {
+  const [streak, setStreak] = useState(null);
+  useEffect(() => { api.getMyStreak().then((r) => setStreak(r.streak)).catch(() => {}); }, []);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const { toastError } = useToast();
@@ -17,7 +19,7 @@ export default function MyProgress() {
       } finally {
         setLoading(false);
       }
-    })(); // eslint-disable-next-line
+    })();
   }, []);
 
   if (loading) return <LoadingPage />;
@@ -49,6 +51,15 @@ export default function MyProgress() {
         </div>
       </div>
 
+      {streak && (
+        <div className="card" style={{ padding: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ fontSize: 30 }}>🔥</div>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#102a56' }}>{streak.current}-day streak</div>
+            <div className="muted" style={{ fontSize: 12 }}>Longest: {streak.longest} days · keep training daily to grow it</div>
+          </div>
+        </div>
+      )}
       <div className="section-title">Domain breakdown</div>
       <div className="grid grid-2">
         {domains.map((d) => {
