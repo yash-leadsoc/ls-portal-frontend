@@ -19,6 +19,7 @@ const NAV = {
   admin: [
     { to: '/', label: 'Dashboard', icon: '📊', end: true },
     { to: '/people', label: 'People', icon: '👥' },
+    { to: '/categories', label: 'BU Categories', icon: '🏷️' },
     TRAINING(true),
     { to: '/interviews', label: 'Interviews', icon: '🎤' },
     { to: '/logs', label: 'Activity logs', icon: '🧾' },
