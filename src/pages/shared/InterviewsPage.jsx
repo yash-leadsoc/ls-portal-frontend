@@ -77,7 +77,7 @@ function InterviewPrep({ role }) {
       setCategories(cats.categories || []);
     } catch (e) { toastError(e); } finally { setLoading(false); }
   };
-  useEffect(() => { load();  }, [catFilter, companyFilter]);
+  useEffect(() => { load(); }, [catFilter, companyFilter]);
 
   return (
     <>
@@ -92,7 +92,7 @@ function InterviewPrep({ role }) {
         </select>
         <div style={{ flex: 1 }} />
         {role === 'admin' && <Button variant="ghost" size="sm" onClick={() => setShowCompany(true)}>+ Company</Button>}
-       {(role === 'admin' || role === 'bu' && <Button variant="cyan" size="sm" onClick={() => setShowUpload(true)}>+ Add material</Button>)}
+        <Button variant="cyan" size="sm" onClick={() => setShowUpload(true)}>+ Add material</Button>
       </div>
 
       {loading ? <LoadingPage /> : materials.length === 0 ? (
@@ -146,7 +146,7 @@ function CompaniesTab() {
       setCategories(cats.categories || []);
     } catch (e) { toastError(e); } finally { setLoading(false); }
   };
-  useEffect(() => { load();  }, []);
+  useEffect(() => { load(); }, []);
 
   const remove = async (id) => {
     if (!window.confirm('Remove this company?')) return;
@@ -258,21 +258,21 @@ function MockTab({ isStaff, isEmployee, user }) {
   const { toast, toastError } = useToast();
   const [mocks, setMocks] = useState([]); const [loading, setLoading] = useState(true);
   const [show, setShow] = useState(false); const [scoreFor, setScoreFor] = useState(null);
-  
+
   const load = async () => {
     setLoading(true);
     try { const r = await api.listMocks(); setMocks(r.mocks || []); }
     catch (e) { toastError(e); } finally { setLoading(false); }
   };
-  useEffect(() => { load();  }, []);
+  useEffect(() => { load(); }, []);
 
   return (
     <>
       {isStaff && (
         <div className="row" style={{ justifyContent: 'flex-end', marginBottom: 12 }}>
 
-          {(user.role !== 'cto' && 
-          <Button variant="cyan" size="sm" onClick={() => setShow(true)}>+ Schedule mock</Button>)}
+          {(user.role !== 'cto' &&
+            <Button variant="cyan" size="sm" onClick={() => setShow(true)}>+ Schedule mock</Button>)}
         </div>
       )}
       {loading ? <LoadingPage /> : mocks.length === 0 ? <Empty>No mock interviews yet.</Empty> : (
@@ -369,7 +369,7 @@ function ClientTab({ role }) {
     try { const r = await api.listClientInterviews(); setItems(r.clients || []); }
     catch (e) { toastError(e); } finally { setLoading(false); }
   };
-  useEffect(() => { load();  }, []);
+  useEffect(() => { load(); }, []);
 
   return (
     <>
@@ -540,7 +540,7 @@ function AvailabilityTab({ isEmployee }) {
       setSlots(r.availability || []);
     } catch (e) { toastError(e); } finally { setLoading(false); }
   };
-  useEffect(() => { load();  }, [monthStr, empId]);
+  useEffect(() => { load(); }, [monthStr, empId]);
 
   const search = async () => {
     const code = lsid.trim();

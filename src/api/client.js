@@ -147,12 +147,33 @@ export const api = {
     post('/auth/change-password', { currentPassword, newPassword }),
 
   createManager: (name, email, password, employeeCode, businessUnit) => post('/users/managers', { name, email, password, employeeCode, businessUnit }),
-  createEmployee: (name, email, password, managerId, employeeCode, businessUnit) =>
-    post('/users/employees', { name, email, password, managerId, employeeCode, businessUnit }),
+  // createEmployee: (name, email, password, managerId, employeeCode, businessUnit) =>
+  //   post('/users/employees', { name, email, password, managerId, employeeCode, businessUnit }),
+
+    createEmployee: (name, email, password, managerId, employeeCode, businessUnit, benchStart, jobStatus) =>
+    post('/users/employees', { name, email, password, managerId, employeeCode, businessUnit, benchStart, jobStatus }),
   listUsers: (role) => get(`/users${role ? `?role=${role}` : ''}`),
   listManagers: () => get('/users/managers'),
   updateMyProfile: (profile) => patch('/users/me/profile', profile),
-  setEmployeeStatus: (id, jobStatus, benchStart) => patch(`/users/${id}/status`, { jobStatus, benchStart }),
+    getHelpVideo: () => get('/settings/help-video'),
+  saveHelpVideo: (data) => put('/settings/help-video', data),
+    bulkRegisterEmployees: (rows, dryRun) => post('/users/employees/bulk', { rows, dryRun }),
+    getMyResume: () => get('/resume/me'),
+  saveMyResume: (resume) => put('/resume/me', resume),
+  uploadResumeFile: async (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch(`${API_URL}/resume/me/file`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    });
+    return handle(res);
+  },
+  deleteResumeFile: () => del('/resume/me/file'),
+  getUserResume: (userId) => get(`/resume/user/${userId}`),
+  // setEmployeeStatus: (id, jobStatus, benchStart) => patch(`/users/${id}/status`, { jobStatus, benchStart }),
+    setEmployeeStatus: (id, jobStatus, benchStart, deployedAt) => patch(`/users/${id}/status`, { jobStatus, benchStart, deployedAt }),
   getUser: (id) => get(`/users/${id}`),
   setUserActive: (id, active) => patch(`/users/${id}/active`, { active }),
 

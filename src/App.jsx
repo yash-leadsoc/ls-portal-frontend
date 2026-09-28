@@ -15,6 +15,8 @@ const ChecklistView = lazy(() => import('./pages/shared/ChecklistView'));
 const DomainsPage = lazy(() => import('./pages/admin/DomainsPage'));
 const CategoriesPage = lazy(() => import('./pages/admin/CategoriesPage'));
 const AccountPage = lazy(() => import('./pages/account/AccountPage'));
+const HelpVideo = lazy(() => import('./pages/employee/HelpVideo'));
+const MyProfile = lazy(() => import('./pages/employee/MyProfile'));
 const Community = lazy(() => import('./pages/shared/Community'));
 const EmployeeDomains = lazy(() => import('./pages/employee/EmployeeDomains'));
 const DomainDetail = lazy(() => import('./pages/employee/DomainDetail'));
@@ -116,6 +118,8 @@ function EmployeeRoutes() {
       <Route path="/checklist/:id" element={<DoChecklist />} />
       <Route path="/writeup/:id" element={<DoWriteup />} />
       <Route path="/progress" element={<MyProgress />} />
+      <Route path="/help" element={<HelpVideo />} />
+      <Route path="/profile" element={<MyProfile />} />
       <Route path="/community" element={<Community />} />
       <Route path="/interviews" element={<InterviewsPage />} />
       <Route path="/account" element={<AccountPage />} />

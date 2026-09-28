@@ -5,7 +5,7 @@ import { api, uid } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { Button, Badge, Modal, LoadingPage, Empty, Spinner, initials } from '../../components/ui';
 import { useToast } from '../../components/Toast';
-
+import BulkEmployeeUpload from '../../components/BulkEmployeeUpload';
 const thStyle = { padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' };
 const tdStyle = { padding: '12px 14px', fontSize: 13, verticalAlign: 'middle' };
 const STATUS_LABEL = { on_training: 'On training', ongoing_interview: 'Ongoing interview', deployed: 'Deployed' };
@@ -27,6 +27,7 @@ export default function PeoplePage() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
+  const [showBulk, setShowBulk] = useState(false);
   const [catFilter, setCatFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [buFilter, setBuFilter] = useState('');
@@ -58,7 +59,7 @@ export default function PeoplePage() {
       setLoading(false);
     }
   };
-  useEffect(() => { load();  }, []);
+  useEffect(() => { load(); }, []);
 
   const list = tab === 'bus' ? bus : tab === 'ctos' ? ctos : tab === 'managers' ? managers : employees;
 
@@ -97,7 +98,7 @@ export default function PeoplePage() {
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Engineers');
-      XLSX.writeFile(wb, `engineers_${new Date().toISOString().slice(0,10)}.xlsx`);
+      XLSX.writeFile(wb, `engineers_${new Date().toISOString().slice(0, 10)}.xlsx`);
     } catch (e) { toastError(e); }
   };
 
@@ -109,9 +110,14 @@ export default function PeoplePage() {
           <p>
             {isAdminLike ? 'Business Units and all engineers across the org.'
               : isBU ? 'Register your trainers and engineers.'
-              : 'Register and track your engineers.'}
+                : 'Register and track your engineers.'}
           </p>
         </div>
+        {isBU && (
+          <Button variant="ghost" onClick={() => setShowBulk(true)} style={{ marginRight: 8 }}>
+            📤 Bulk upload engineers
+          </Button>
+        )}
         {showAdd && (
           <Button variant="cyan" onClick={() => setModal(addModal)}>+ Add {addLabel}</Button>
         )}
@@ -188,70 +194,70 @@ export default function PeoplePage() {
             <>
 
               {role !== 'manager' && (
-  <div
-    className="row gap-8"
-    style={{
-      marginBottom: 12,
-      alignItems: 'center',
-      flexWrap: 'wrap',
-    }}
-  >
-    <select
-      className="select"
-      style={{ maxWidth: 180 }}
-      value={catFilter}
-      onChange={(e) => setCatFilter(e.target.value)}
-    >
-      <option value="">All categories</option>
-      {categoryOptions.map((c) => (
-        <option key={c} value={c}>{c}</option>
-      ))}
-    </select>
+                <div
+                  className="row gap-8"
+                  style={{
+                    marginBottom: 12,
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <select
+                    className="select"
+                    style={{ maxWidth: 180 }}
+                    value={catFilter}
+                    onChange={(e) => setCatFilter(e.target.value)}
+                  >
+                    <option value="">All categories</option>
+                    {categoryOptions.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
 
-    <select
-      className="select"
-      style={{ maxWidth: 180 }}
-      value={buFilter}
-      onChange={(e) => setBuFilter(e.target.value)}
-    >
-      <option value="">All BUs</option>
-      {buOptions.map((b) => (
-        <option key={b} value={b}>{b}</option>
-      ))}
-    </select>
+                  <select
+                    className="select"
+                    style={{ maxWidth: 180 }}
+                    value={buFilter}
+                    onChange={(e) => setBuFilter(e.target.value)}
+                  >
+                    <option value="">All BUs</option>
+                    {buOptions.map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
 
-    <select
-      className="select"
-      style={{ maxWidth: 170 }}
-      value={statusFilter}
-      onChange={(e) => setStatusFilter(e.target.value)}
-    >
-      <option value="">All status</option>
-      <option value="on_training">On training</option>
-      <option value="ongoing_interview">Ongoing interview</option>
-      <option value="deployed">Deployed</option>
-    </select>
+                  <select
+                    className="select"
+                    style={{ maxWidth: 170 }}
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="">All status</option>
+                    <option value="on_training">On training</option>
+                    <option value="ongoing_interview">Ongoing interview</option>
+                    <option value="deployed">Deployed</option>
+                  </select>
 
-    <select
-      className="select"
-      style={{ maxWidth: 150 }}
-      value={ageFilter}
-      onChange={(e) => setAgeFilter(e.target.value)}
-    >
-      <option value="">All ageing</option>
-      <option value="0-30">0–30 days</option>
-      <option value="31-60">31–60 days</option>
-      <option value="61-90">61–90 days</option>
-      <option value="90+">90+ days</option>
-    </select>
+                  <select
+                    className="select"
+                    style={{ maxWidth: 150 }}
+                    value={ageFilter}
+                    onChange={(e) => setAgeFilter(e.target.value)}
+                  >
+                    <option value="">All ageing</option>
+                    <option value="0-30">0–30 days</option>
+                    <option value="31-60">31–60 days</option>
+                    <option value="61-90">61–90 days</option>
+                    <option value="90+">90+ days</option>
+                  </select>
 
-    <div style={{ flex: 1 }} />
+                  <div style={{ flex: 1 }} />
 
-    <Button variant="cyan" size="sm" onClick={exportExcel}>
-      ⬇ Export Excel
-    </Button>
-  </div>
-)}
+                  <Button variant="cyan" size="sm" onClick={exportExcel}>
+                    ⬇ Export Excel
+                  </Button>
+                </div>
+              )}
               <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
@@ -318,6 +324,9 @@ export default function PeoplePage() {
         </div>
       )}
 
+      {showBulk && (
+        <BulkEmployeeUpload onClose={() => setShowBulk(false)} onDone={load} />
+      )}
       {modal && (
         <RegisterModal
           role={modal}
@@ -338,7 +347,11 @@ function RegisterModal({ role, creatorRole, onClose, onDone }) {
   const [employeeCode, setEmployeeCode] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [businessUnit, setBusinessUnit] = useState('');
+  // const [managerId, setManagerId] = useState('');
+  // const [categories, setCategories] = useState([]);
   const [managerId, setManagerId] = useState('');
+  const [benchStart, setBenchStart] = useState(new Date().toISOString().slice(0, 10));
+  const [jobStatus, setJobStatus] = useState('on_training');
   const [categories, setCategories] = useState([]);
   const [bus, setBus] = useState([]);
   const [ctos, setCtos] = useState([]);
@@ -347,9 +360,9 @@ function RegisterModal({ role, creatorRole, onClose, onDone }) {
   const { toast, toastError } = useToast();
 
   useEffect(() => {
-    if (role === 'bu') api.listCategories().then((r) => setCategories(r.categories || [])).catch(() => {});
-    if (isAdmin && (role === 'manager' || role === 'employee')) api.listBUs().then((r) => setBus(r.bus || [])).catch(() => {});
-    if (role === 'employee') api.listManagers().then((r) => setManagers(r.managers || [])).catch(() => {});
+    if (role === 'bu') api.listCategories().then((r) => setCategories(r.categories || [])).catch(() => { });
+    if (isAdmin && (role === 'manager' || role === 'employee')) api.listBUs().then((r) => setBus(r.bus || [])).catch(() => { });
+    if (role === 'employee') api.listManagers().then((r) => setManagers(r.managers || [])).catch(() => { });
   }, [role, isAdmin]);
 
   const submit = async () => {
@@ -359,7 +372,10 @@ function RegisterModal({ role, creatorRole, onClose, onDone }) {
     }
     if (!employeeCode.trim()) { toastError('ID is required'); return; }
     if (role === 'bu' && !categoryId) { toastError('Category is required'); return; }
-
+    if (role === 'employee' && benchStart && benchStart > new Date().toISOString().slice(0, 10)) {
+      toastError('Bench start date cannot be in the future');
+      return;
+    }
     setBusy(true);
     try {
       if (role === 'cto') {
@@ -369,7 +385,11 @@ function RegisterModal({ role, creatorRole, onClose, onDone }) {
       } else if (role === 'manager') {
         await api.createManager(name.trim(), email.trim(), password, employeeCode.trim(), businessUnit || undefined);
       } else {
-        await api.createEmployee(name.trim(), email.trim(), password, managerId || undefined, employeeCode.trim(), businessUnit || undefined);
+        // await api.createEmployee(name.trim(), email.trim(), password, managerId || undefined, employeeCode.trim(), businessUnit || undefined);
+        await api.createEmployee(
+          name.trim(), email.trim(), password, managerId || undefined, employeeCode.trim(),
+          businessUnit || undefined, benchStart || undefined, jobStatus
+        );
       }
       toast(`${role === 'cto' ? 'CTO' : role === 'bu' ? 'Business Unit' : role === 'manager' ? 'Trainer' : 'Engineer'} registered`);
       onDone();
@@ -442,6 +462,29 @@ function RegisterModal({ role, creatorRole, onClose, onDone }) {
         </div>
       )}
 
+      {role === 'employee' && (
+        <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="field">
+            <label>Bench start date</label>
+            <input
+              className="input"
+              type="date"
+              value={benchStart}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setBenchStart(e.target.value)}
+            />
+            <div className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>Bench ageing is counted from this date.</div>
+          </div>
+          <div className="field">
+            <label>Current status</label>
+            <select className="select" value={jobStatus} onChange={(e) => setJobStatus(e.target.value)}>
+              <option value="on_training">On training</option>
+              <option value="ongoing_interview">Ongoing interview</option>
+              <option value="deployed">Deployed</option>
+            </select>
+          </div>
+        </div>
+      )}
       <div className="field">
         <label>Temporary password</label>
         <input className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />

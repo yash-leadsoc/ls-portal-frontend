@@ -118,6 +118,9 @@ export default function DoChecklist() {
 
   return (
     <div className="checklist-page">
+      <button className="btn link" onClick={() => nav(-1)} style={{ marginBottom: 12, paddingLeft: 0 }}>
+        ← Back
+      </button>
       <div className="cl-crumb">
         Domains
         {domainName ? <> › {domainName}</> : null} › <strong>{checklist.title}</strong>

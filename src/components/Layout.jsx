@@ -54,6 +54,8 @@ const NAV = {
     { to: '/interviews', label: 'Interviews', icon: '🎤' },
     { to: '/progress', label: 'My Progress', icon: '📈' },
     { to: '/community', label: 'Community', icon: '💬' },
+    { to: '/help', label: 'How to use', icon: '🎬' },
+    { to: '/profile', label: 'Profile & Resume', icon: '👤' },
     { to: '/account', label: 'Settings', icon: '⚙️' },
   ],
 };

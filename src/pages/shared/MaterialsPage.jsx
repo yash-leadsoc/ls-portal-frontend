@@ -71,6 +71,26 @@ const fileIcon = (name = '') => {
   return '📁';
 };
 
+
+const templateBtnStyle = {
+  background: 'none',
+  border: 'none',
+  padding: 0,
+  cursor: 'pointer',
+  color: 'var(--cyan)',
+  fontWeight: 600,
+  fontSize: 13,
+};
+
+function downloadTemplate(fileName) {
+  const link = document.createElement('a');
+  link.href = encodeURI(`/${fileName}`);
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 export default function MaterialsPage() {
   const [domains, setDomains] = useState([]);
   const [docs, setDocs] = useState([]);
@@ -89,19 +109,19 @@ export default function MaterialsPage() {
   const [domainWriteup, setDomainWriteup] = useState(null);
   const [exercises, setExercises] = useState([]);
   const [showExForm, setShowExForm] = useState(false);
-  const canEditEx = ['admin','bu','manager'].includes(String(user?.role || '').toLowerCase());
+  const canEditEx = ['admin', 'bu', 'manager'].includes(String(user?.role || '').toLowerCase());
   useEffect(() => {
     if (!filter) { setExercises([]); return; }
     api.listExercises(filter).then((r) => setExercises(r.exercises || [])).catch(() => setExercises([]));
   }, [filter]);
-  const reloadExercises = () => filter && api.listExercises(filter).then((r) => setExercises(r.exercises || [])).catch(() => {});
+  const reloadExercises = () => filter && api.listExercises(filter).then((r) => setExercises(r.exercises || [])).catch(() => { });
   const [showWriteupForm, setShowWriteupForm] = useState(false);
 
   const [confirm, setConfirm] = useState(null);
   const { toast, toastError } = useToast();
   const nav = useNavigate();
 
-  const canFilterCat = ['admin','cto'].includes(String(user?.role || '').toLowerCase());
+  const canFilterCat = ['admin', 'cto'].includes(String(user?.role || '').toLowerCase());
   const [matCatFilter, setMatCatFilter] = useState('');
   const [editChecklist, setEditChecklist] = useState(null);
   const [editWriteup, setEditWriteup] = useState(null);
@@ -232,6 +252,27 @@ export default function MaterialsPage() {
             Upload PPT / DOC / PDF against a domain, then attach
             checklists and write-ups.
           </p>
+
+          {['admin', 'bu', 'manager'].includes(user?.role) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10, fontSize: 13 }}>
+              <span className="muted">Download templates:</span>
+              <button
+                type="button"
+                onClick={() => downloadTemplate('checklist_template.xlsx')}
+                style={templateBtnStyle}
+              >
+                📥 Checklist Template.xlsx
+              </button>
+              <span className="muted">|</span>
+              <button
+                type="button"
+                onClick={() => downloadTemplate('Writeup Template.xlsx')}
+                style={templateBtnStyle}
+              >
+                📥 Writeup Template.xlsx
+              </button>
+            </div>
+          )}
         </div>
         {canEdit && (
           <Button
@@ -310,10 +351,10 @@ export default function MaterialsPage() {
                 {domainChecklist ? (
                   <>
                     <Button variant="ghost" size="sm" onClick={() => setShowChecklist(true)}>👁 View</Button>
-                      {['admin', 'manager'].includes(String(user?.role || '').toLowerCase()) && (
-                    <Button variant="ghost" size="sm" onClick={() => setEditChecklist(domainChecklist)}>✏️ Edit</Button>
-                       )}
-                        {isAdmin && (
+                    {['admin', 'bu', 'manager'].includes(String(user?.role || '').toLowerCase()) && (
+                      <Button variant="ghost" size="sm" onClick={() => setEditChecklist(domainChecklist)}>✏️ Edit</Button>
+                    )}
+                    {isAdmin && (
                       <Button variant="danger" size="sm" onClick={() => setConfirm({
                         message: 'Do you really want to delete this checklist? This cannot be undone.',
                         onConfirm: async () => {
@@ -328,8 +369,8 @@ export default function MaterialsPage() {
                     )}
                   </>
                 ) : (canEdit &&
-                  
-                   <Button variant="cyan" size="sm" onClick={() => setShowChecklistForm(true)}>+ Add checklist</Button>
+
+                  <Button variant="cyan" size="sm" onClick={() => setShowChecklistForm(true)}>+ Add checklist</Button>
                 )}
               </div>
             </div>
@@ -351,7 +392,7 @@ export default function MaterialsPage() {
                 {domainWriteup ? (
                   <>
                     <Button variant="ghost" size="sm" onClick={() => setShowWriteup(true)}>👁 View</Button>
-                    {['admin', 'manager'].includes(String(user?.role || '').toLowerCase()) && (
+                    {['admin', 'bu', 'manager'].includes(String(user?.role || '').toLowerCase()) && (
                       <Button variant="ghost" size="sm" onClick={() => setEditWriteup(domainWriteup)}>✏️ Edit</Button>
                     )}
                     {isAdmin && (
@@ -710,7 +751,7 @@ function UploadModal({ domains = [], onClose, onDone }) {
       }
       toast('Material added');
       onDone();
-    } catch (e) {  toastError(e); }
+    } catch (e) { toastError(e); }
     finally { setBusy(false); }
   };
 
@@ -1065,12 +1106,12 @@ function ExerciseModal({ domainId, onClose, onDone }) {
       <div className="field"><label>Instructions</label><textarea className="textarea" value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Steps the engineer should follow…" /></div>
       <div className="field"><label>Reference</label>
         <div style={{ display: 'flex', gap: 8 }}>
-          {[['file','File'],['link','Link'],['none','None']].map(([k,l]) => (
-            <button key={k} type="button" onClick={() => setRefType(k)} style={{ flex:1, padding:'8px', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer', border: refType===k?'1px solid #08a6c7':'1px solid #dbe3ec', background: refType===k?'#eefbfe':'#fff', color: refType===k?'#0284a8':'#475569' }}>{l}</button>
+          {[['file', 'File'], ['link', 'Link'], ['none', 'None']].map(([k, l]) => (
+            <button key={k} type="button" onClick={() => setRefType(k)} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: refType === k ? '1px solid #08a6c7' : '1px solid #dbe3ec', background: refType === k ? '#eefbfe' : '#fff', color: refType === k ? '#0284a8' : '#475569' }}>{l}</button>
           ))}
         </div>
       </div>
-      {refType === 'file' && <div className="field"><input className="input" type="file" style={{ paddingTop:10 }} onChange={(e) => setFile(e.target.files?.[0] || null)} /></div>}
+      {refType === 'file' && <div className="field"><input className="input" type="file" style={{ paddingTop: 10 }} onChange={(e) => setFile(e.target.files?.[0] || null)} /></div>}
       {refType === 'link' && <div className="field"><input className="input" value={refLink} onChange={(e) => setRefLink(e.target.value)} placeholder="https://…" /></div>}
     </Modal>
   );

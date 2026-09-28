@@ -32,7 +32,7 @@ export default function Login() {
       <form className="login-card" onSubmit={submit}>
         <div className="logo">LS</div>
         <h2 style={{ textAlign: 'center', margin: '0 0 4px', color: 'var(--navy)', fontSize: 20 }}>
-          LeadSoC Training Portal
+          LeadSoc TEDP
         </h2>
         <p style={{ textAlign: 'center', margin: '0 0 24px', color: 'var(--muted)', fontSize: 13.5 }}>
           Sign in to continue
@@ -101,11 +101,7 @@ export default function Login() {
           {busy ? <Spinner sm /> : 'Sign in'}
         </Button>
 
-        <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--muted)', marginTop: 18, lineHeight: 1.5 }}>
-          One login for admins, managers and engineers.
-          <br />
-          You’re routed to the right workspace by your role.
-        </p>
+        
       </form>
     </div>
   );

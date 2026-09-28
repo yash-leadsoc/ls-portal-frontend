@@ -3,6 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../api/client';
 import { Kpi, LoadingPage, Empty } from '../../components/ui';
 import { useToast } from '../../components/Toast';
+import ResumeViewer from '../../components/ResumeViewer';
+
+import { useAuth } from '../../auth/AuthContext';
+
 
 export default function EmployeeDetail() {
   const { id } = useParams();
@@ -20,7 +24,7 @@ export default function EmployeeDetail() {
 
   const [pptSubmissions, setPptSubmissions] = useState([]);
   const [pptLoading, setPptLoading] = useState(true);
-
+  const { user: loggedUser } = useAuth();
   const [previewDoc, setPreviewDoc] = useState(null);
   const [exSubs, setExSubs] = useState([]);
 
@@ -100,7 +104,7 @@ export default function EmployeeDetail() {
 
   const { user, progress = {}, summary = {} } = data;
 
-  const canEdit = ['admin', 'bu', 'manager'].includes(String(user?.role || '').toLowerCase());
+  const canEdit = ['admin', 'bu', 'manager'].includes(String(loggedUser?.role || '').toLowerCase());
 
   const assignedIds = (user.assignedDomains || [])
     .map((d) => (typeof d === 'string' ? d : d?._id || d?.id))
@@ -222,9 +226,14 @@ export default function EmployeeDetail() {
 
         {(canEdit &&
           <button className="btn" onClick={openDomainModal}>Assign Domains</button>)}
+
       </div>
 
-      <ProfileCard user={data.user} />
+      {/* <ProfileCard user={data.user} /> */}
+      <ProfileCard
+        user={data.user}
+        onUpdated={(updated) => setData((current) => ({ ...current, user: { ...current.user, ...updated } }))}
+      />
 
       <div className="grid grid-3">
         <Kpi icon="📅" value={summary.daysEnrolled ?? 0} label="Days enrolled" />
@@ -702,10 +711,52 @@ export default function EmployeeDetail() {
   );
 }
 
-function ProfileCard({ user: u }) {
-  const [open, setOpen] = useState(false);
-  const STATUS_LABEL = { on_training: 'On training', ongoing_interview: 'Ongoing interview', deployed: 'Deployed' };
+const toInputDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
+const fmtDay = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 
+function ProfileCard({ user: u, onUpdated }) {
+  const [open, setOpen] = useState(false);
+  const [showResume, setShowResume] = useState(false);
+  const STATUS_LABEL = { on_training: 'On training', ongoing_interview: 'Ongoing interview', deployed: 'Deployed' };
+  const { user: me } = useAuth();
+  const { toast, toastError } = useToast();
+  const canEdit = ['admin', 'bu', 'manager'].includes(me?.role);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ jobStatus: '', benchStart: '', deployedAt: '' });
+  const today = new Date().toISOString().slice(0, 10);
+
+  const startEdit = () => {
+    setForm({
+      jobStatus: u.jobStatus || 'on_training',
+      benchStart: toInputDate(u.benchStart),
+      deployedAt: toInputDate(u.deployedAt),
+    });
+    setEditing(true);
+  };
+
+  const save = async () => {
+    if (!form.benchStart) return toastError('Bench start date is required');
+    if (form.jobStatus === 'deployed' && form.deployedAt && form.deployedAt < form.benchStart) {
+      return toastError('Deployed date cannot be before the bench start date');
+    }
+    setSaving(true);
+    try {
+      const res = await api.setEmployeeStatus(
+        u.id || u._id,
+        form.jobStatus,
+        form.benchStart,
+        form.jobStatus === 'deployed' ? form.deployedAt || today : null
+      );
+      onUpdated && onUpdated(res.user);
+      toast('Status and bench dates updated');
+      setEditing(false);
+    } catch (e) {
+      toastError(e);
+    } finally {
+      setSaving(false);
+    }
+  };
   return (
     <section className="card" style={{ padding: 16, marginBottom: 16 }}>
       <button
@@ -733,12 +784,70 @@ function ProfileCard({ user: u }) {
           <div><b>BU:</b> {u.buName || '—'}</div>
           <div><b>Category:</b> {u.categoryName || '—'}</div>
           <div><b>Trainer:</b> {u.trainerName || '—'}</div>
-          <div><b>Bench ageing:</b> {u.benchDays ?? 0} days</div>
           <div><b>Status:</b> {STATUS_LABEL[u.jobStatus] || '—'}</div>
+          <div><b>Bench start date:</b> {fmtDay(u.benchStart)}{u.benchStartSet === false ? ' (joining date)' : ''}</div>
+          {u.jobStatus === 'deployed' && <div><b>Deployed on:</b> {fmtDay(u.deployedAt)}</div>}
+          <div>
+            <b>Bench ageing:</b> {u.benchDays ?? 0} days
+            {u.benchBucket ? <span className="muted"> ({u.benchBucket} days bucket)</span> : null}
+            {u.jobStatus === 'deployed' ? <span className="muted"> — until deployment</span> : null}
+          </div>
           <div><b>🔥 Streak:</b> {u.streak?.current ?? 0} days (best {u.streak?.longest ?? 0})</div>
           <div style={{ gridColumn: '1 / -1' }}><b>Skills:</b> {(u.skills || []).join(', ') || '—'}</div>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <button type="button" className="training-small-button" onClick={() => setShowResume(true)}>
+              📄 View resume
+            </button>
+          </div>
+          {canEdit && !editing && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <button type="button" className="training-small-button" onClick={startEdit}>
+                ✏️ Edit status & bench dates
+              </button>
+            </div>
+          )}
+
+          {canEdit && editing && (
+            <div
+              style={{
+                gridColumn: '1 / -1', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end',
+                background: '#f4f6fb', padding: 12, borderRadius: 10,
+              }}
+            >
+              <div className="field" style={{ margin: 0, minWidth: 170 }}>
+                <label>Status</label>
+                <select className="select" value={form.jobStatus} onChange={(e) => setForm({ ...form, jobStatus: e.target.value })}>
+                  <option value="on_training">On training</option>
+                  <option value="ongoing_interview">Ongoing interview</option>
+                  <option value="deployed">Deployed</option>
+                </select>
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>Bench start date</label>
+                <input className="input" type="date" max={today} value={form.benchStart}
+                  onChange={(e) => setForm({ ...form, benchStart: e.target.value })} />
+              </div>
+              {form.jobStatus === 'deployed' && (
+                <div className="field" style={{ margin: 0 }}>
+                  <label>Deployed date</label>
+                  <input className="input" type="date" min={form.benchStart} max={today} value={form.deployedAt}
+                    onChange={(e) => setForm({ ...form, deployedAt: e.target.value })} />
+                </div>
+              )}
+              <button type="button" className="training-small-button" onClick={save} disabled={saving}>
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+              <button type="button" className="training-small-button" onClick={() => setEditing(false)} disabled={saving}>
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       )}
+
+      {showResume && <ResumeViewer userId={u.id || u._id} onClose={() => setShowResume(false)} />}
+
     </section>
   );
 }

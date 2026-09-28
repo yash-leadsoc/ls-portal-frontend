@@ -3,6 +3,7 @@ import { api } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { Button, Badge, Modal, Spinner, initials } from '../../components/ui';
 import { useToast } from '../../components/Toast';
+import HelpVideoSettings from '../../components/HelpVideoSettings';
 
 export default function AccountPage() {
   const { user, logout, setUser } = useAuth();
@@ -30,7 +31,7 @@ export default function AccountPage() {
       </div>
 
       {user.role === 'bu' && <ConfigurePortal user={user} setUser={setUser} />}
-
+      {user.role === 'admin' && <HelpVideoSettings />}
       <div className="card" style={{ maxWidth: 640, marginTop: 16, padding: '6px 20px' }}>
         <div className="list-row">
           <div style={{ flex: 1 }}>
