@@ -94,3 +94,43 @@ export async function registerPushNotifications() {
 
     return subscription;
 }
+
+export function pushSupported() {
+    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+export function pushPermission() {
+    return pushSupported() ? Notification.permission : 'unsupported';
+}
+
+export async function ensurePushSubscription() {
+    if (!pushSupported() || Notification.permission !== 'granted') return null;
+    try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+            const { publicKey } = await api.getNotificationPublicKey();
+            if (!publicKey) return null;
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(publicKey),
+            });
+        }
+        await api.subscribeNotifications(subscription.toJSON());
+        return subscription;
+    } catch (e) {
+        return null;
+    }
+}
+
+export async function currentPushEndpoint() {
+    if (!pushSupported()) return null;
+    try {
+        const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+        const subscription = registration && (await registration.pushManager.getSubscription());
+        return subscription ? subscription.endpoint : null;
+    } catch (e) {
+        return null;
+    }
+}

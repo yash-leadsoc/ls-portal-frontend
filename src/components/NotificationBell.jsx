@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import {
   registerPushNotifications,
+  pushPermission,
 } from '../services/pushNotifications';
 
 export default function NotificationBell() {
@@ -130,12 +131,22 @@ export default function NotificationBell() {
             )}
           </div>
 
-          <button
-            className="enable-notification-button"
-            onClick={enableNotifications}
-          >
-            🔔 Enable browser notifications
-          </button>
+          {pushPermission() === 'granted' ? (
+            <div className="muted" style={{ fontSize: 12, padding: '6px 12px' }}>
+              ✓ Desktop notifications are on for this browser
+            </div>
+          ) : pushPermission() === 'denied' ? (
+            <div className="muted" style={{ fontSize: 12, padding: '6px 12px' }}>
+              Notifications are blocked. Allow them in your browser's site settings to get alerts.
+            </div>
+          ) : pushPermission() === 'unsupported' ? null : (
+            <button
+              className="enable-notification-button"
+              onClick={enableNotifications}
+            >
+              🔔 Enable browser notifications
+            </button>
+          )}
 
           <div className="notification-list">
 

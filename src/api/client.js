@@ -43,7 +43,46 @@ const patch = (p, b) =>
   fetch(`${API_URL}${p}`, { method: 'PATCH', headers: headers(), body: JSON.stringify(b) }).then(handle);
 const del = (p) => fetch(`${API_URL}${p}`, { method: 'DELETE', headers: headers() }).then(handle);
 
+const qs = (params = {}) => {
+  const s = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== '' && v != null)).toString();
+  return s ? `?${s}` : '';
+};
+
+export function trackUsage(path, ms, view) {
+  if (!token) return;
+  try {
+    fetch(`${API_URL}/insights/track`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ path, ms: Math.round(ms || 0), view: !!view }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch (e) {}
+}
+
 export const api = {
+  logout: (endpoint) => post('/auth/logout', { endpoint }),
+  insightsOverview: (days) => get(`/insights/overview${qs({ days })}`),
+  insightsActivity: (days) => get(`/insights/activity${qs({ days })}`),
+  insightsPerformance: (hours) => get(`/insights/performance${qs({ hours })}`),
+  insightsDatabase: () => get('/insights/database'),
+  insightsAlerts: () => get('/insights/alerts'),
+  runAlertCheck: () => post('/insights/alerts/run', {}),
+  insightsLogs: (kind, params = {}) => get(`/insights/logs/${kind}${qs(params)}`),
+  insightsLogDetail: (kind, id) => get(`/insights/logs/${kind}/${id}`),
+  downloadInsightsCsv: async (kind, params = {}) => {
+    const res = await fetch(`${API_URL}/insights/logs/${kind}${qs({ ...params, format: 'csv' })}`, { headers: headers(false) });
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${kind}-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
   getMyStreak: () => get('/streak/me'),
   listExercises: (domainId) => get(`/exercises?domain=${domainId}`),
   createExercise: async ({ domainId, title, instructions, refType, refLink, file }) => {
@@ -290,6 +329,11 @@ export const api = {
   listCategories: () => get('/categories'),
   createCategory: (name, description) => post('/categories', { name, description }),
   deleteCategory: (id) => del(`/categories/${id}`),
+
+
+  listTrash: (entity) => get(`/trash${entity ? `?entity=${encodeURIComponent(entity)}` : ''}`),
+  restoreTrash: (id) => post(`/trash/${id}/restore`, {}),
+  purgeTrash: (id) => del(`/trash/${id}`),
 };
 
 export function uid(o) {

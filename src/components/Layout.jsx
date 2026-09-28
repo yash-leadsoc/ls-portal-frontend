@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { initials } from './ui';
 import PortalAssistant from './PortalAssistant';
 import NotificationBell from './NotificationBell';
+import { useUsageTracking } from '../services/usageTracker';
 
 const TRAINING = (withDomains = true) => ({
   group: 'Training', icon: '🎓',
@@ -19,9 +20,11 @@ const NAV = {
   admin: [
     { to: '/', label: 'Dashboard', icon: '📊', end: true },
     { to: '/people', label: 'People', icon: '👥' },
+    { to: '/categories', label: 'BU Categories', icon: '🏷️' },
     TRAINING(true),
     { to: '/interviews', label: 'Interviews', icon: '🎤' },
-    { to: '/logs', label: 'Activity logs', icon: '🧾' },
+    { to: '/insights', label: 'Insights', icon: '📈' },
+    { to: '/recycle-bin', label: 'Recycle Bin', icon: '🗑️' },
     { to: '/account', label: 'Settings', icon: '⚙️' },
   ],
   cto: [
@@ -29,7 +32,7 @@ const NAV = {
     { to: '/people', label: 'People', icon: '👥' },
     TRAINING(true),
     { to: '/interviews', label: 'Interviews', icon: '🎤' },
-    { to: '/logs', label: 'Insights', icon: '📈' },
+    { to: '/insights', label: 'Insights', icon: '📈' },
     { to: '/account', label: 'Settings', icon: '⚙️' },
   ],
   bu: [
@@ -73,6 +76,7 @@ function applyMenuConfig(items, cfg) {
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
+  useUsageTracking(!!user);
   const [open, setOpen] = useState(false);
   const loc = useLocation();
 

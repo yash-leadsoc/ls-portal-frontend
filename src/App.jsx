@@ -22,8 +22,9 @@ const DoChecklist = lazy(() => import('./pages/employee/DoChecklist'));
 const DoWriteup = lazy(() => import('./pages/employee/DoWriteup'));
 const MyProgress = lazy(() => import('./pages/employee/MyProgress'));
 const LogsPage = lazy(() => import('./pages/shared/LogsPage'));
+const InsightsPage = lazy(() => import('./pages/shared/InsightsPage'));
 const InterviewsPage = lazy(() => import('./pages/shared/InterviewsPage'));
-
+const RecycleBin = lazy(() => import('./pages/shared/RecycleBin'));
 function AdminRoutes() {
   return (
     <Routes>
@@ -37,9 +38,11 @@ function AdminRoutes() {
       <Route path="/employee/:id" element={<EmployeeDetail />} />
       <Route path="/employee/:id/domain/:domainId/checklist" element={<ChecklistView />} />
       <Route path="/community" element={<Community />} />
+      <Route path="/insights" element={<InsightsPage />} />
       <Route path="/logs" element={<LogsPage />} />
       <Route path="/interviews" element={<InterviewsPage />} />
       <Route path="/account" element={<AccountPage />} />
+      <Route path="/recycle-bin" element={<RecycleBin />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
@@ -77,6 +80,7 @@ function CtoRoutes() {
       <Route path="/employee/:id" element={<EmployeeDetail />} />
       <Route path="/employee/:id/domain/:domainId/checklist" element={<ChecklistView />} />
       <Route path="/community" element={<Community />} />
+      <Route path="/insights" element={<InsightsPage />} />
       <Route path="/logs" element={<LogsPage />} />
       <Route path="/interviews" element={<InterviewsPage />} />
       <Route path="/account" element={<AccountPage />} />
