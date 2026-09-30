@@ -383,6 +383,102 @@ export default function DomainDetail() {
           )}
         </section>
 
+
+        <section className="card" style={{ padding: 18 }}>
+          <div className="section-title" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="row" style={{ gap: 9, alignItems: 'center' }}>
+              <span className="section-icon">🧪</span>
+              <div>
+                <div className="section-heading">Exercises</div>
+                <div className="section-subtitle">
+                  {exercises.filter((e) => e.my.completed).length} of {exercises.length} completed
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowGuide((g) => !g)}
+              style={{ border: '1px solid #dbe3ec', background: '#fff', color: '#0284a8', borderRadius: 7, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
+            >
+              {showGuide ? 'Hide guidelines' : 'ℹ Guidelines'}
+            </button>
+          </div>
+
+          {showGuide && (
+            <div style={{ marginTop: 10, padding: '10px 12px', background: '#f2fbfd', border: '1px solid #cbeef5', borderRadius: 8, fontSize: 11.5, color: '#475569', lineHeight: 1.7 }}>
+              <b>How to submit</b><br />
+              1) Open the exercise (“Click here”) and do the task.<br />
+              2) Save your work to Google Drive.<br />
+              3) In Drive: <b>Share → Anyone with the link → Viewer</b>, copy the link.<br />
+              4) Paste the link below and tick <b>Completed</b>.
+            </div>
+          )}
+
+          {exercises.length === 0 ? (
+            <div className="muted" style={{ marginTop: 12, fontSize: 12 }}>No exercises for this domain yet.</div>
+          ) : (
+            exercises.map((ex) => (
+              <div
+                key={ex._id}
+                style={{
+                  marginTop: 12,
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 10,
+                  padding: 14,
+                  background: ex.my.completed ? '#f2fdf6' : '#fff',
+                }}
+              >
+                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                  <div className="row" style={{ gap: 10, alignItems: 'center', minWidth: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={!!ex.my.completed}
+                      disabled={!!exBusy[ex._id]}
+                      onChange={(e) => saveExercise(ex, e.target.checked)}
+                      style={{ width: 17, height: 17, flexShrink: 0, accentColor: '#08a9cc', cursor: 'pointer' }}
+                      title={ex.my.completed ? 'Completed' : 'Mark completed'}
+                    />
+                    <div className="row" style={{ gap: 6, alignItems: 'center', minWidth: 0 }}>
+                      <span style={{ fontSize: 14, fontWeight: 750, color: 'var(--navy)', textDecoration: ex.my.completed ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {ex.title}
+                      </span>
+                      {ex.instructions ? (
+                        <span title={ex.instructions} style={{ flexShrink: 0, width: 16, height: 16, borderRadius: '50%', background: '#eef6ff', color: '#0284a8', fontSize: 10.5, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'help' }}>
+                          ?
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {(ex.refType === 'file' && ex.refFileUrl) ? (
+                    <a className="training-small-button" style={{ flexShrink: 0 }} href={ex.refFileUrl} target="_blank" rel="noreferrer">Click here</a>
+                  ) : (ex.refType === 'link' && ex.refLink) ? (
+                    <a className="training-small-button" style={{ flexShrink: 0 }} href={ex.refLink} target="_blank" rel="noreferrer">Click here</a>
+                  ) : null}
+                </div>
+
+                <div className="row" style={{ gap: 8, marginTop: 10, alignItems: 'center' }}>
+                  <input
+                    type="url"
+                    placeholder="Paste your Google Drive link…"
+                    value={exDraft[ex._id] ?? ex.my.driveLink ?? ''}
+                    onChange={(e) => setExDraft((d) => ({ ...d, [ex._id]: e.target.value }))}
+                    style={{ flex: 1, minWidth: 0, height: 38, boxSizing: 'border-box', border: '1px solid #cbd5e1', borderRadius: 8, padding: '0 12px', fontSize: 12.5 }}
+                  />
+                  <button
+                    className="training-small-button"
+                    style={{ flexShrink: 0, height: 38, padding: '0 14px' }}
+                    disabled={!!exBusy[ex._id]}
+                    onClick={() => saveExercise(ex, ex.my.completed)}
+                  >
+                    {exBusy[ex._id] ? 'Saving…' : 'Save link'}
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </section>
+
         <section className="card" style={{ padding: 18 }}>
           <div className="section-title">
             <span className="section-icon">☑️</span>
@@ -430,17 +526,6 @@ export default function DomainDetail() {
             Open checklist →
           </button>
         </section>
-      </div>
-
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 14,
-          marginTop: 14,
-          alignItems: 'stretch',
-        }}
-      >
         <section
           className="card"
           style={{
@@ -698,102 +783,9 @@ export default function DomainDetail() {
               : 'Continue Write-up →'}
           </button>
         </section>
-
-        <section className="card" style={{ padding: 18 }}>
-          <div className="section-title" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="row" style={{ gap: 9, alignItems: 'center' }}>
-              <span className="section-icon">🧪</span>
-              <div>
-                <div className="section-heading">Exercises</div>
-                <div className="section-subtitle">
-                  {exercises.filter((e) => e.my.completed).length} of {exercises.length} completed
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowGuide((g) => !g)}
-              style={{ border: '1px solid #dbe3ec', background: '#fff', color: '#0284a8', borderRadius: 7, padding: '5px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
-            >
-              {showGuide ? 'Hide guidelines' : 'ℹ Guidelines'}
-            </button>
-          </div>
-
-          {showGuide && (
-            <div style={{ marginTop: 10, padding: '10px 12px', background: '#f2fbfd', border: '1px solid #cbeef5', borderRadius: 8, fontSize: 11.5, color: '#475569', lineHeight: 1.7 }}>
-              <b>How to submit</b><br />
-              1) Open the exercise (“Click here”) and do the task.<br />
-              2) Save your work to Google Drive.<br />
-              3) In Drive: <b>Share → Anyone with the link → Viewer</b>, copy the link.<br />
-              4) Paste the link below and tick <b>Completed</b>.
-            </div>
-          )}
-
-          {exercises.length === 0 ? (
-            <div className="muted" style={{ marginTop: 12, fontSize: 12 }}>No exercises for this domain yet.</div>
-          ) : (
-            exercises.map((ex) => (
-              <div
-                key={ex._id}
-                style={{
-                  marginTop: 12,
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 10,
-                  padding: 14,
-                  background: ex.my.completed ? '#f2fdf6' : '#fff',
-                }}
-              >
-                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                  <div className="row" style={{ gap: 10, alignItems: 'center', minWidth: 0 }}>
-                    <input
-                      type="checkbox"
-                      checked={!!ex.my.completed}
-                      disabled={!!exBusy[ex._id]}
-                      onChange={(e) => saveExercise(ex, e.target.checked)}
-                      style={{ width: 17, height: 17, flexShrink: 0, accentColor: '#08a9cc', cursor: 'pointer' }}
-                      title={ex.my.completed ? 'Completed' : 'Mark completed'}
-                    />
-                    <div className="row" style={{ gap: 6, alignItems: 'center', minWidth: 0 }}>
-                      <span style={{ fontSize: 14, fontWeight: 750, color: 'var(--navy)', textDecoration: ex.my.completed ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {ex.title}
-                      </span>
-                      {ex.instructions ? (
-                        <span title={ex.instructions} style={{ flexShrink: 0, width: 16, height: 16, borderRadius: '50%', background: '#eef6ff', color: '#0284a8', fontSize: 10.5, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'help' }}>
-                          ?
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  {(ex.refType === 'file' && ex.refFileUrl) ? (
-                    <a className="training-small-button" style={{ flexShrink: 0 }} href={ex.refFileUrl} target="_blank" rel="noreferrer">Click here</a>
-                  ) : (ex.refType === 'link' && ex.refLink) ? (
-                    <a className="training-small-button" style={{ flexShrink: 0 }} href={ex.refLink} target="_blank" rel="noreferrer">Click here</a>
-                  ) : null}
-                </div>
-
-                <div className="row" style={{ gap: 8, marginTop: 10, alignItems: 'center' }}>
-                  <input
-                    type="url"
-                    placeholder="Paste your Google Drive link…"
-                    value={exDraft[ex._id] ?? ex.my.driveLink ?? ''}
-                    onChange={(e) => setExDraft((d) => ({ ...d, [ex._id]: e.target.value }))}
-                    style={{ flex: 1, minWidth: 0, height: 38, boxSizing: 'border-box', border: '1px solid #cbd5e1', borderRadius: 8, padding: '0 12px', fontSize: 12.5 }}
-                  />
-                  <button
-                    className="training-small-button"
-                    style={{ flexShrink: 0, height: 38, padding: '0 14px' }}
-                    disabled={!!exBusy[ex._id]}
-                    onClick={() => saveExercise(ex, ex.my.completed)}
-                  >
-                    {exBusy[ex._id] ? 'Saving…' : 'Save link'}
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </section>
       </div>
+
+  
 
       <style>{`
         .domain-training-page { width: 100%; max-width: 1100px; margin: 0; }

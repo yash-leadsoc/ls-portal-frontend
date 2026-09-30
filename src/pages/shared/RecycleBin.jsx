@@ -15,6 +15,7 @@ const ENTITY_LABEL = {
   question: 'Question',
   answer: 'Answer',
   availability: 'Availability',
+  user: 'User account',
 };
 
 function fmt(d) {

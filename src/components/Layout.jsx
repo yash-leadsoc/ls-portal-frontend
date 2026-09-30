@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { getActiveUnit, setActiveUnit, setActiveView } from '../api/client';
 import { initials } from './ui';
 import PortalAssistant from './PortalAssistant';
 import NotificationBell from './NotificationBell';
@@ -23,6 +24,7 @@ const NAV = {
     { to: '/categories', label: 'BU Categories', icon: '🏷️' },
     TRAINING(true),
     { to: '/interviews', label: 'Interviews', icon: '🎤' },
+    { to: '/bench', label: 'Bench Tracker', icon: '🪑' },
     { to: '/insights', label: 'Insights', icon: '📈' },
     { to: '/recycle-bin', label: 'Recycle Bin', icon: '🗑️' },
     { to: '/account', label: 'Settings', icon: '⚙️' },
@@ -53,9 +55,9 @@ const NAV = {
     { to: '/', label: 'Domains', icon: '🎯', end: true },
     { to: '/interviews', label: 'Interviews', icon: '🎤' },
     { to: '/progress', label: 'My Progress', icon: '📈' },
+    { to: '/profile', label: 'Profile & Resume', icon: '👤' },
     { to: '/community', label: 'Community', icon: '💬' },
     { to: '/help', label: 'How to use', icon: '🎬' },
-    { to: '/profile', label: 'Profile & Resume', icon: '👤' },
     { to: '/account', label: 'Settings', icon: '⚙️' },
   ],
 };
@@ -84,6 +86,7 @@ export default function Layout({ children }) {
 
   let items = NAV[user.role] || [];
   if (user.role === 'bu') items = applyMenuConfig(items, user.menuConfig);
+  if (user.subAdmin) items = items.filter((i) => i.to !== '/insights' && i.to !== '/logs');
 
   const [openGroups, setOpenGroups] = useState(() => {
     const init = {};
@@ -151,9 +154,48 @@ export default function Layout({ children }) {
           <button className="hamburger" onClick={() => setOpen(true)} aria-label="Menu">☰</button>
           <div style={{ flex: 1 }}>
             <div className="title">{title}</div>
-            <div className="subtitle hide-mobile">{ROLE_LABEL[user.role]} workspace</div>
+            <div className="subtitle hide-mobile">
+              {user.subAdmin ? 'Sub admin' : ROLE_LABEL[user.role]} workspace
+              {user.role === 'bu' && (user.units || []).length > 0 && (() => {
+                const cur = user.units.find((u) => u.id === getActiveUnit()) || user.units[0];
+                return cur ? ` · ${cur.name}${cur.type === 'temporary' ? ' (temporary)' : ''}` : '';
+              })()}
+            </div>
           </div>
           <div className="topbar-actions">
+            {user.trainerAccess && user.baseRole === 'employee' && (
+              <select
+                className="select"
+                title="Switch view"
+                style={{ height: 36, width: 'auto', fontWeight: 600 }}
+                value={user.view || 'employee'}
+                onChange={(e) => {
+                  setActiveView(e.target.value);
+                  window.location.assign('/');
+                }}
+              >
+                <option value="employee">👤 Engineer view</option>
+                <option value="trainer">🧑‍🏫 Trainer view</option>
+              </select>
+            )}
+            {user.role === 'bu' && (user.units || []).length > 1 && (
+              <select
+                className="select"
+                title="Switch Business Unit"
+                style={{ height: 36, width: 'auto', maxWidth: 260, fontWeight: 600 }}
+                value={getActiveUnit() || ''}
+                onChange={(e) => {
+                  setActiveUnit(e.target.value);
+                  window.location.assign('/');
+                }}
+              >
+                {user.units.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}{u.categoryName ? ` · ${u.categoryName}` : ''}{u.type === 'temporary' ? ' (temporary)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
 
             <NotificationBell />
 

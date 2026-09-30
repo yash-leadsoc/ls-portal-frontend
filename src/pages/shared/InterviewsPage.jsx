@@ -14,6 +14,7 @@ const td = { padding: '10px 12px', fontSize: 12.5, verticalAlign: 'top', borderT
 export default function InterviewsPage() {
   const { user } = useAuth();
   const role = user.role;
+  const isSubAdmin = user.isSubAdmin;
   const isStaff = ['admin', 'cto', 'bu', 'manager'].includes(role);
   const isEmployee = role === 'employee';
 
@@ -51,6 +52,15 @@ const removeCompany = async (id) => {
   if (!window.confirm('Remove this company?')) return;
   try { await api.deleteCompany(id); load(); toast('Company removed'); }
   catch (e) { toastError(e); }
+};
+
+
+const imTh = { padding: '11px 14px', fontSize: 12, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap', textAlign: 'left' };
+const imTd = { padding: '10px 14px', fontSize: 13, verticalAlign: 'middle' };
+const fileExt = (url = '') => {
+  const clean = String(url).split('?')[0];
+  const e = clean.includes('.') ? clean.split('.').pop().toUpperCase() : '';
+  return e && e.length <= 5 ? e : 'FILE';
 };
 
 function InterviewPrep({ role }) {
@@ -92,32 +102,63 @@ function InterviewPrep({ role }) {
         </select>
         <div style={{ flex: 1 }} />
         {role === 'admin' && <Button variant="ghost" size="sm" onClick={() => setShowCompany(true)}>+ Company</Button>}
-        <Button variant="cyan" size="sm" onClick={() => setShowUpload(true)}>+ Add material</Button>
+        {(role === 'admin' || role === 'bu') && (
+          <Button variant="cyan" size="sm" onClick={() => setShowUpload(true)}>+ Add material</Button>
+        )}
       </div>
 
       {loading ? <LoadingPage /> : materials.length === 0 ? (
         <Empty>No interview material yet.</Empty>
       ) : (
-        <div className="grid grid-auto">
-          {materials.map((m) => (
-            <div key={m._id} className="card" style={{ padding: 16 }}>
-              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--navy)' }}>{m.title}</div>
-                  <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>{m.companyName}</div>
-                </div>
-                <Badge kind="info">{KIND_LABEL[m.kind] || m.kind}</Badge>
-              </div>
-              <div style={{ marginTop: 8, fontSize: 11.5, color: '#64748b', lineHeight: 1.6 }}>
-                {m.forRole ? <div>Role: <b>{m.forRole}</b></div> : null}
-                <div>Uploaded by: {m.uploaderName} ({m.uploaderEmployeeCode || m.uploaderRole})</div>
-                <div>{new Date(m.createdAt).toLocaleDateString()}</div>
-              </div>
-              <div style={{ marginTop: 10 }}>
-                <a className="btn" href={m.fileUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>Open file</a>
-              </div>
-            </div>
-          ))}
+        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc' }}>
+                <th style={imTh}>#</th>
+                <th style={imTh}>Material</th>
+                <th style={imTh}>Company</th>
+                <th style={imTh}>Type</th>
+                <th style={imTh}>Role</th>
+                <th style={imTh}>Uploaded by</th>
+                <th style={imTh}>Uploaded on</th>
+                <th style={{ ...imTh, textAlign: 'right' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {materials.map((m, i) => (
+                <tr
+                  key={m._id}
+                  style={{ borderTop: '1px solid #eef2f7', cursor: m.fileUrl ? 'pointer' : 'default' }}
+                  onClick={() => m.fileUrl && window.open(m.fileUrl, '_blank', 'noopener')}
+                >
+                  <td style={{ ...imTd, color: 'var(--muted)', width: 40 }}>{i + 1}</td>
+                  <td style={{ ...imTd, minWidth: 220 }}>
+                    <div className="row gap-8" style={{ alignItems: 'center' }}>
+                      <Badge kind="neutral">{fileExt(m.fileUrl)}</Badge>
+                      <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{m.title}</span>
+                    </div>
+                  </td>
+                  <td style={{ ...imTd, color: '#334155' }}>{m.companyName || '—'}</td>
+                  <td style={imTd}><Badge kind="info">{KIND_LABEL[m.kind] || m.kind || '—'}</Badge></td>
+                  <td style={{ ...imTd, color: '#334155' }}>{m.forRole || '—'}</td>
+                  <td style={{ ...imTd, color: '#334155' }}>
+                    {m.uploaderName || '—'}
+                    <div className="muted" style={{ fontSize: 11 }}>{m.uploaderEmployeeCode || m.uploaderRole}</div>
+                  </td>
+                  <td style={{ ...imTd, color: '#334155', whiteSpace: 'nowrap' }}>
+                    {m.createdAt ? new Date(m.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                  </td>
+                  <td style={{ ...imTd, textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                    {m.fileUrl ? (
+                      <a className="btn ghost sm" href={m.fileUrl} target="_blank" rel="noreferrer">Open file</a>
+                    ) : (
+                      <span className="muted">No file</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

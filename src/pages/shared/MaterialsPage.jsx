@@ -58,6 +58,58 @@ function ConfirmModal({ title = 'Are you sure?', message, confirmLabel = 'Delete
   );
 }
 
+const FILE_STYLES = {
+  pdf: { label: 'PDF', color: '#e11d48' },
+  ppt: { label: 'PPT', color: '#ea580c' },
+  pptx: { label: 'PPT', color: '#ea580c' },
+  doc: { label: 'DOC', color: '#2563eb' },
+  docx: { label: 'DOC', color: '#2563eb' },
+  xls: { label: 'XLS', color: '#16a34a' },
+  xlsx: { label: 'XLS', color: '#16a34a' },
+  csv: { label: 'CSV', color: '#16a34a' },
+  html: { label: 'HTML', color: '#f97316' },
+  htm: { label: 'HTML', color: '#f97316' },
+  zip: { label: 'ZIP', color: '#7c3aed' },
+  txt: { label: 'TXT', color: '#64748b' },
+  png: { label: 'IMG', color: '#0891b2' },
+  jpg: { label: 'IMG', color: '#0891b2' },
+  jpeg: { label: 'IMG', color: '#0891b2' },
+  gif: { label: 'IMG', color: '#0891b2' },
+  webp: { label: 'IMG', color: '#0891b2' },
+};
+
+function docKind(doc = {}) {
+  if (doc.type === 'youtube') return 'youtube';
+  if (doc.type === 'html') return 'html';
+  return String(doc.originalName || '').split('.').pop().toLowerCase();
+}
+
+function DocTypeIcon({ doc, size = 30 }) {
+  const kind = docKind(doc);
+  if (kind === 'youtube') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 32 32" aria-label="YouTube video" role="img" style={{ flexShrink: 0 }}>
+        <rect x="1" y="6" width="30" height="20" rx="6" fill="#ff0000" />
+        <path d="M13 11.5v9l8-4.5z" fill="#fff" />
+      </svg>
+    );
+  }
+  const st = FILE_STYLES[kind] || { label: (kind || 'FILE').slice(0, 4).toUpperCase(), color: '#94a3b8' };
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-label={`${st.label} file`} role="img" style={{ flexShrink: 0 }}>
+      <path d="M7 2h13l7 7v19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="#fff" stroke="#cbd5e1" strokeWidth="1.2" />
+      <path d="M20 2v5a2 2 0 0 0 2 2h5" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1.2" />
+      <rect x="2" y="15" width="24" height="10" rx="2" fill={st.color} />
+      <text x="14" y="22.6" textAnchor="middle" fontSize={st.label.length > 3 ? 6.2 : 7.2} fontWeight="800" fill="#fff" fontFamily="Arial, sans-serif">
+        {st.label}
+      </text>
+    </svg>
+  );
+}
+
+const matTh = { padding: '11px 14px', fontSize: 12, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' };
+const matTd = { padding: '10px 14px', fontSize: 13, verticalAlign: 'middle' };
+
 const fileIcon = (name = '') => {
   const e = name.split('.').pop()?.toLowerCase() || '';
 
@@ -458,105 +510,72 @@ export default function MaterialsPage() {
           No materials yet. Click “Upload material”.
         </Empty>
       ) : (
-        <div className="grid grid-auto">
-          {docs.map((doc) => {
-            const documentId = uid(doc);
-
-            return (
-              <div
-                key={documentId}
-                className="card card-hover"
-                style={{
-                  cursor: 'pointer',
-                }}
-              >
-                <div className="row gap-12">
-                  <div
-                    style={{
-                      fontSize: 20,
-                      flexShrink: 0,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
+               <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                <th style={matTh}>#</th>
+                <th style={matTh}>Material</th>
+                <th style={matTh}>Domain</th>
+                <th style={matTh}>Type</th>
+                <th style={matTh}>Uploaded by</th>
+                <th style={matTh}>Uploaded on</th>
+                <th style={{ ...matTh, textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {docs.map((doc, i) => {
+                const documentId = uid(doc);
+               const k = docKind(doc);
+                const kind = k === 'youtube' ? 'YouTube' : (FILE_STYLES[k] && FILE_STYLES[k].label) || (k ? k.toUpperCase() : 'FILE');
+                return (
+                  <tr
+                    key={documentId}
+                    style={{ borderTop: '1px solid #eef2f7', cursor: 'pointer' }}
+                    onClick={() => setPreviewDoc(doc)}
                   >
-                    {fileIcon(doc.originalName)}
-                  </div>
-
-                  <div
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      height: 40,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 12,
-                        color: 'var(--navy)',
-                      }}
-                    >
-                      {doc.title || 'Untitled document'}
-                    </div>
-
-                    <div
-                      className="muted"
-                      style={{
-                        fontSize: 10,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {doc.originalName || 'Unknown file'}
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="row"
-                  style={{
-                    marginTop: 12,
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Badge kind="info">
-                    {doc.domain?.name || '—'}
-                  </Badge>
-
-                  <div
-                    className="row gap-8"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setPreviewDoc(doc)}
-                    >
-                      👁
-                    </Button>
-
-                    {(user?.role || '').toLowerCase() === 'admin' && (
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => setConfirm({
-                          message: `Do you really want to delete "${doc.title || doc.originalName}"? This cannot be undone.`,
-                          onConfirm: async () => {
-                            await remove(doc);
-                            setConfirm(null);
-                          },
-                        })}
-                      >
-                        Delete
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                    <td style={{ ...matTd, color: 'var(--muted)', width: 40 }}>{i + 1}</td>
+                    <td style={{ ...matTd, minWidth: 260 }}>
+                      <div className="row gap-8" style={{ alignItems: 'center' }}>
+                           <DocTypeIcon doc={doc} />
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy)' }}>{doc.title || 'Untitled document'}</div>
+                          <div className="muted" style={{ fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 360 }}>
+                            {doc.originalName || 'Unknown file'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={matTd}><Badge kind="info">{doc.domain?.name || '—'}</Badge></td>
+                    <td style={matTd}><Badge kind="neutral">{kind}</Badge></td>
+                    <td style={{ ...matTd, color: '#334155' }}>{doc.uploadedBy?.name || '—'}</td>
+                    <td style={{ ...matTd, color: '#334155', whiteSpace: 'nowrap' }}>
+                      {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                    </td>
+                    <td style={{ ...matTd, textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" onClick={() => setPreviewDoc(doc)}>👁 View</Button>
+                      {(user?.role || '').toLowerCase() === 'admin' && (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          style={{ marginLeft: 6 }}
+                          onClick={() => setConfirm({
+                            message: `Do you really want to delete "${doc.title || doc.originalName}"? It will be moved to the Recycle Bin.`,
+                            onConfirm: async () => {
+                              await remove(doc);
+                              setConfirm(null);
+                            },
+                          })}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { api } from '../api/client';
 import { Badge, Button, Modal, Spinner } from './ui';
@@ -74,8 +74,15 @@ function downloadTemplate() {
   a.remove();
 }
 
-export default function BulkEmployeeUpload({ onClose, onDone }) {
+export default function BulkEmployeeUpload({ onClose, onDone, needsBU = false, buOptions = null }) {
   const { toast, toastError } = useToast();
+  const [bus, setBus] = useState([]);
+  const [businessUnit, setBusinessUnit] = useState('');
+
+  useEffect(() => {
+    if (buOptions) setBus(buOptions);
+    else if (needsBU) api.listBUs().then((r) => setBus(r.bus || [])).catch(() => {});
+  }, [needsBU, buOptions]);
   const input = useRef(null);
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState([]);
@@ -85,6 +92,11 @@ export default function BulkEmployeeUpload({ onClose, onDone }) {
 
   const pickFile = async (file) => {
     if (!file) return;
+    if (needsBU && !businessUnit) {
+      toastError('Please select a Business Unit first');
+      if (input.current) input.current.value = '';
+      return;
+    }
     setPreview(null);
     setResult(null);
     setFileName(file.name);
@@ -94,7 +106,7 @@ export default function BulkEmployeeUpload({ onClose, onDone }) {
       if (!parsed.length) throw new Error('The file has no engineer rows.');
       if (parsed.length > 300) throw new Error('Upload at most 300 engineers per file.');
       setRows(parsed);
-      setPreview(await api.bulkRegisterEmployees(parsed, true));
+      setPreview(await api.bulkRegisterEmployees(parsed, true, businessUnit || undefined));
     } catch (e) {
       toastError(e);
       setRows([]);
@@ -107,7 +119,7 @@ export default function BulkEmployeeUpload({ onClose, onDone }) {
   const register = async () => {
     setBusy(true);
     try {
-      const res = await api.bulkRegisterEmployees(rows, false);
+      const res = await api.bulkRegisterEmployees(rows, false, businessUnit || undefined);
       setResult(res);
       toast(`${res.created} engineer(s) registered`);
       if (res.created) onDone && onDone();
@@ -164,6 +176,24 @@ export default function BulkEmployeeUpload({ onClose, onDone }) {
           <li>Upload it here. Every row is checked before anyone is registered.</li>
           <li>Register the valid rows, then download the results file with login passwords.</li>
         </ol>
+        {needsBU && (
+          <div className="field" style={{ marginTop: 12, marginBottom: 0, maxWidth: 360 }}>
+            <label>Business Unit *</label>
+            <select
+              className="select"
+              value={businessUnit}
+              disabled={!!preview}
+              onChange={(e) => setBusinessUnit(e.target.value)}
+            >
+              <option value="">— Select BU —</option>
+              {bus.map((b) => (
+                <option key={b.id || b._id} value={b.id || b._id}>
+                  {b.name} {b.categoryName ? `(${b.categoryName})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="row gap-8" style={{ marginTop: 12, flexWrap: 'wrap' }}>
           <Button variant="ghost" size="sm" onClick={downloadTemplate}>📥 Download template</Button>
           <input ref={input} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={(e) => pickFile(e.target.files[0])} />

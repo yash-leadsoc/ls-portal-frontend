@@ -11,10 +11,34 @@ export function getToken() {
   return token;
 }
 
+let activeUnit = localStorage.getItem('ls_unit') || null;
+
+export function setActiveUnit(id) {
+  activeUnit = id || null;
+  if (activeUnit) localStorage.setItem('ls_unit', activeUnit);
+  else localStorage.removeItem('ls_unit');
+}
+export function getActiveUnit() {
+  return activeUnit;
+}
+
+let activeView = localStorage.getItem('ls_view') || null;
+
+export function setActiveView(v) {
+  activeView = v || null;
+  if (activeView) localStorage.setItem('ls_view', activeView);
+  else localStorage.removeItem('ls_view');
+}
+export function getActiveView() {
+  return activeView;
+}
+
 function headers(json = true) {
   const h = {};
   if (json) h['Content-Type'] = 'application/json';
   if (token) h['Authorization'] = `Bearer ${token}`;
+  if (token && activeUnit) h['X-Unit'] = activeUnit;
+  if (token && activeView) h['X-View'] = activeView;
   return h;
 }
 
@@ -91,7 +115,7 @@ export const api = {
       fd.append('domainId', domainId); fd.append('title', title);
       fd.append('instructions', instructions || ''); fd.append('refType', 'file');
       fd.append('file', file);
-      const res = await fetch(`${API_URL}/exercises`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd });
+      const res = await fetch(`${API_URL}/exercises`, { method: 'POST', headers: headers(false), body: fd });
       return handle(res);
     }
     return post('/exercises', { domainId, title, instructions, refType: refType || 'none', refLink });
@@ -118,7 +142,7 @@ export const api = {
     fd.append('file', file);
     const res = await fetch(`${API_URL}/interviews/materials`, {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: headers(false),
       body: fd,
     });
     return handle(res);
@@ -147,39 +171,39 @@ export const api = {
     post('/auth/change-password', { currentPassword, newPassword }),
 
   createManager: (name, email, password, employeeCode, businessUnit) => post('/users/managers', { name, email, password, employeeCode, businessUnit }),
-  // createEmployee: (name, email, password, managerId, employeeCode, businessUnit) =>
-  //   post('/users/employees', { name, email, password, managerId, employeeCode, businessUnit }),
-
-    createEmployee: (name, email, password, managerId, employeeCode, businessUnit, benchStart, jobStatus) =>
-    post('/users/employees', { name, email, password, managerId, employeeCode, businessUnit, benchStart, jobStatus }),
+  createEmployee: (name, email, password, managerId, employeeCode, businessUnit) =>
+    post('/users/employees', { name, email, password, managerId, employeeCode, businessUnit }),
   listUsers: (role) => get(`/users${role ? `?role=${role}` : ''}`),
   listManagers: () => get('/users/managers'),
   updateMyProfile: (profile) => patch('/users/me/profile', profile),
-    getHelpVideo: () => get('/settings/help-video'),
+  getHelpVideo: () => get('/settings/help-video'),
   saveHelpVideo: (data) => put('/settings/help-video', data),
-    bulkRegisterEmployees: (rows, dryRun) => post('/users/employees/bulk', { rows, dryRun }),
-    getMyResume: () => get('/resume/me'),
+  bulkRegisterEmployees: (rows, dryRun, businessUnit) => post('/users/employees/bulk', { rows, dryRun, businessUnit }),
+  getMyResume: () => get('/resume/me'),
   saveMyResume: (resume) => put('/resume/me', resume),
   uploadResumeFile: async (file) => {
     const fd = new FormData();
     fd.append('file', file);
     const res = await fetch(`${API_URL}/resume/me/file`, {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: headers(false),
       body: fd,
     });
     return handle(res);
   },
   deleteResumeFile: () => del('/resume/me/file'),
   getUserResume: (userId) => get(`/resume/user/${userId}`),
-  // setEmployeeStatus: (id, jobStatus, benchStart) => patch(`/users/${id}/status`, { jobStatus, benchStart }),
-    setEmployeeStatus: (id, jobStatus, benchStart, deployedAt) => patch(`/users/${id}/status`, { jobStatus, benchStart, deployedAt }),
+  setEmployeeStatus: (id, jobStatus, benchStart) => patch(`/users/${id}/status`, { jobStatus, benchStart }),
   getUser: (id) => get(`/users/${id}`),
   setUserActive: (id, active) => patch(`/users/${id}/active`, { active }),
+  updateTrainer: (id, data) => patch(`/users/${id}/trainer`, data),
+  updateEngineer: (id, data) => patch(`/users/${id}/engineer`, data),
+  deleteUser: (id) => del(`/users/${id}`),
+  setTrainerAccess: (id, enabled) => patch(`/users/${id}/trainer-access`, { enabled }),
 
   listDomains: () => get('/domains'),
   assignUserDomains: (id, domainIds) => patch(`/users/${id}/domains`, { domainIds }),
-  createDomain: (key, name, description, icon) => post('/domains', { key, name, description, icon }),
+  createDomain: (key, name, description, icon, businessUnit) => post('/domains', { key, name, description, icon, businessUnit: businessUnit || undefined }),
   deleteDomain: (id) => del(`/domains/${id}`),
 
   listDocuments: (domainId) => get(`/documents${domainId ? `?domainId=${domainId}` : ''}`),
@@ -194,7 +218,7 @@ export const api = {
     fd.append('file', file);
     const res = await fetch(`${API_URL}/documents`, {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: headers(false),
       body: fd,
     });
     return handle(res);
@@ -340,15 +364,29 @@ export const api = {
   updateChecklist: (id, title, items) => put(`/checklists/${id}`, { title, items }),
   updateWriteup: (id, title, questions) => put(`/writeups/${id}`, { title, questions }),
 
-  createBU: (name, email, password, employeeCode, categoryId) => post('/users/bus', { name, email, password, employeeCode, categoryId }),
+  createBU: (name, email, password, employeeCode, categoryId, kind = 'bu') => post('/users/bus', { name, email, password, employeeCode, categoryId, kind }),
+  listBUHeads: () => get('/users/bus/heads'),
+  addUnitHead: (unitId, headId, type) => post(`/users/bus/${unitId}/heads`, { headId, type }),
+  removeUnitHead: (unitId, headId) => del(`/users/bus/${unitId}/heads/${headId}`),
+  setUnitLogin: (unitId, loginDisabled) => patch(`/users/bus/${unitId}/login`, { loginDisabled }),
   listBUs: () => get('/users/bus'),
   createCTO: (name, email, password, employeeCode) => post('/users/ctos', { name, email, password, employeeCode }),
   listCTOs: () => get('/users/ctos'),
+  createSubAdmin: (name, email, password, employeeCode) => post('/users/subadmins', { name, email, password, employeeCode }),
+  listSubAdmins: () => get('/users/subadmins'),
+  benchList: (full) => get(`/bench${full ? '?full=1' : ''}`),
+  benchGet: (id) => get(`/bench/${id}`),
+  benchUpdate: (id, data) => patch(`/bench/${id}`, data),
+  benchAddComment: (id, date, text) => post(`/bench/${id}/comments`, { date, text }),
+  benchDeleteComment: (id, commentId) => del(`/bench/${id}/comments/${commentId}`),
+  benchImport: (rows, buMap, dryRun, createAccounts) => post('/bench/import', { rows, buMap, dryRun, createAccounts }),
+  benchReport: (period, date) => get(`/bench/report?period=${period}&date=${date}`),
   getOverview: (categoryId) => get(`/overview${categoryId ? `?category=${categoryId}` : ''}`),
   exportEngineers: () => get('/tracking/export/engineers'),
   updateMyMenu: (menuConfig) => patch('/users/me/menu', { menuConfig }),
   listCategories: () => get('/categories'),
-  createCategory: (name, description) => post('/categories', { name, description }),
+  createCategory: (name, description, parent) => post('/categories', { name, description, parent: parent || undefined }),
+  myScope: () => get('/users/my-scope'),
   deleteCategory: (id) => del(`/categories/${id}`),
 
 

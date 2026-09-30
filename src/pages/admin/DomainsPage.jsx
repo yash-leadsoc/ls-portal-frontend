@@ -157,7 +157,14 @@ function DomainModal({ onClose, onDone }) {
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('📘');
   const [busy, setBusy] = useState(false);
+  const [scope, setScope] = useState(null);
+  const [unitId, setUnitId] = useState('');
   const { toast, toastError } = useToast();
+  const { user: me } = useAuth();
+
+  useEffect(() => {
+    if (me?.role === 'bu') api.myScope().then(setScope).catch(() => {});
+  }, []);
 
   const submit = async () => {
     if (!key.trim() || !name.trim()) {
@@ -166,7 +173,7 @@ function DomainModal({ onClose, onDone }) {
     }
     setBusy(true);
     try {
-      await api.createDomain(key.trim().toLowerCase(), name.trim(), description.trim(), icon.trim() || '📘');
+      await api.createDomain(key.trim().toLowerCase(), name.trim(), description.trim(), icon.trim() || '📘', unitId || undefined);
       toast('Domain created');
       onDone();
     } catch (e) {
@@ -191,6 +198,17 @@ function DomainModal({ onClose, onDone }) {
       <div className="field"><label>Name (e.g. DFT)</label><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></div>
       <div className="field"><label>Description</label><input className="input" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
       <div className="field"><label>Icon (emoji)</label><input className="input" value={icon} onChange={(e) => setIcon(e.target.value)} /></div>
+      {scope?.isCategoryHead && (
+        <div className="field">
+          <label>Sub-category</label>
+          <select className="select" value={unitId} onChange={(e) => setUnitId(e.target.value)}>
+            <option value="">Whole category (shared with all sub-categories)</option>
+            {scope.units.filter((u) => u.level === 'sub').map((u) => (
+              <option key={u.id} value={u.id}>{u.categoryName || u.name} — {u.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
     </Modal>
   );
 }
