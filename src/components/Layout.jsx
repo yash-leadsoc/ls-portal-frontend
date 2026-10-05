@@ -10,7 +10,7 @@ import { useUsageTracking } from '../services/usageTracker';
 const TRAINING = (withDomains = true) => ({
   group: 'Training', icon: '🎓',
   children: [
-    { to: '/training-overview', label: 'Cohort Overview', icon: '📈', key: 'cohort' },
+    { to: '/training-overview', label: 'Training Overview', icon: '📈', key: 'cohort' },
     { to: '/materials', label: 'Materials', icon: '📁', key: 'materials' },
     ...(withDomains ? [{ to: '/domains', label: 'Domains', icon: '🗂️', key: 'domains' }] : []),
     { to: '/community', label: 'Community', icon: '💬', key: 'community' },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, uid } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { Button, Badge, Modal, LoadingPage, Empty, Spinner, initials } from '../../components/ui';
@@ -11,6 +11,23 @@ const thStyle = { padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#
 const tdStyle = { padding: '12px 14px', fontSize: 13, verticalAlign: 'middle' };
 const STATUS_LABEL = { on_training: 'On training', ongoing_interview: 'Ongoing interview', deployed: 'Deployed' };
 const STATUS_KIND = { on_training: 'info', ongoing_interview: 'warning', deployed: 'success' };
+
+
+const usePersisted = (key, initial) => {
+  const [v, setV] = useState(() => {
+    try {
+      const s = sessionStorage.getItem(`people:${key}`);
+      return s != null ? JSON.parse(s) : initial;
+    } catch (e) {
+      return initial;
+    }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem(`people:${key}`, JSON.stringify(v)); } catch (e) {}
+  }, [key, v]);
+  return [v, setV];
+};
+
 
 export default function PeoplePage() {
   const { user } = useAuth();
@@ -23,7 +40,9 @@ export default function PeoplePage() {
   const tabs = role === 'admin'
     ? ['bus', 'employees', 'managers', 'ctos', ...(fullAdmin ? ['subadmins'] : [])]
     : role === 'cto' ? ['bus', 'employees', 'managers'] : isBU ? ['managers', 'employees'] : ['employees'];
-  const [tab, setTab] = useState(tabs[0]);
+  const [params, setParams] = useSearchParams();
+  const tab = tabs.includes(params.get('tab')) ? params.get('tab') : tabs[0];
+  const setTab = (t) => setParams((p) => { const n = new URLSearchParams(p); n.set('tab', t); return n; }, { replace: true });
 
   const [bus, setBus] = useState([]);
   const [subadmins, setSubadmins] = useState([]);
@@ -42,6 +61,7 @@ export default function PeoplePage() {
   const [editEngineer, setEditEngineer] = useState(null);
   const [manageBU, setManageBU] = useState(null);
   const [scope, setScope] = useState(null);
+  const [pwUser, setPwUser] = useState(null);
   const [subFilter, setSubFilter] = useState('');
   const [headOnly, setHeadOnly] = useState([]);
   const [trainerDomainFilter, setTrainerDomainFilter] = useState('');
@@ -76,6 +96,11 @@ export default function PeoplePage() {
 
   const ActionButtons = ({ u, label, canToggle, canDelete }) => (
     <span onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
+      {/*{fullAdmin && (
+        <Button size="sm" variant="ghost" style={{ marginLeft: 6 }} title="Show password" onClick={() => setPwUser(u)}>
+          🔑
+        </Button>
+      )}*/}
       {canToggle && (
         <Button size="sm" variant={u.active ? 'ghost' : 'cyan'} style={{ marginLeft: 6 }} onClick={() => toggleActive(u, label)}>
           {u.active ? 'Deactivate' : 'Activate'}
@@ -462,7 +487,7 @@ export default function PeoplePage() {
                               style={{ marginRight: 6 }}
                               onClick={(e) => { e.stopPropagation(); setEditEngineer(u); }}
                             >
-                              ✏️ Edit
+                              ✏️
                             </Button>
                           )}
                           <ActionButtons u={u} label="Engineer" canToggle={canWrite} canDelete={role === 'admin' || isBU} />
@@ -560,6 +585,8 @@ export default function PeoplePage() {
           );
         })()
       )}
+
+      {pwUser && <PasswordModal target={pwUser} onClose={() => setPwUser(null)} />}
 
       {manageBU && (
         <ManageBUModal
@@ -1247,6 +1274,60 @@ function ManageBUModal({ unit, onClose, onChanged }) {
             The head gets full BU access to this category and can switch to it from the top bar. Access stays until you remove it.
           </div>
         </div>
+      </div>
+    </Modal>
+  );
+}
+
+function PasswordModal({ target, onClose }) {
+  const { toast } = useToast();
+  const [state, setState] = useState({ loading: true, password: '', error: '' });
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    api.viewPassword(uid(target))
+      .then((r) => setState({ loading: false, password: r.password, error: '' }))
+      .catch((e) => setState({ loading: false, password: '', error: e.message || 'Could not load password' }));
+  }, []);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(state.password);
+      toast('Password copied');
+    } catch (e) {
+      setVisible(true);
+    }
+  };
+
+  return (
+    <Modal
+      title={`Password — ${target.name}${target.employeeCode ? ` (${target.employeeCode})` : ''}`}
+      onClose={onClose}
+      footer={<Button variant="ghost" onClick={onClose}>Close</Button>}
+    >
+      <div style={{ maxWidth: 520 }}>
+        {state.loading ? (
+          <div className="row" style={{ justifyContent: 'center', padding: 20 }}><Spinner /></div>
+        ) : state.error ? (
+          <div style={{ color: '#b45309', fontSize: 13.5 }}>{state.error}</div>
+        ) : (
+          <>
+            <div className="row gap-8" style={{ alignItems: 'center' }}>
+              <input
+                className="input"
+                readOnly
+                type={visible ? 'text' : 'password'}
+                value={state.password}
+                style={{ fontFamily: 'monospace', fontSize: 15 }}
+              />
+              <Button variant="ghost" onClick={() => setVisible((v) => !v)}>{visible ? 'Hide' : 'Show'}</Button>
+              <Button variant="cyan" onClick={copy}>Copy</Button>
+            </div>
+            <div className="muted" style={{ fontSize: 12, marginTop: 10 }}>
+              Viewing a password is recorded in the audit log. Share it only with the account owner.
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   );

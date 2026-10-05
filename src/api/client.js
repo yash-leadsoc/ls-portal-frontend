@@ -200,6 +200,7 @@ export const api = {
   updateEngineer: (id, data) => patch(`/users/${id}/engineer`, data),
   deleteUser: (id) => del(`/users/${id}`),
   setTrainerAccess: (id, enabled) => patch(`/users/${id}/trainer-access`, { enabled }),
+  viewPassword: (id) => get(`/users/${id}/password`),
 
   listDomains: () => get('/domains'),
   assignUserDomains: (id, domainIds) => patch(`/users/${id}/domains`, { domainIds }),
@@ -381,7 +382,7 @@ export const api = {
   benchDeleteComment: (id, commentId) => del(`/bench/${id}/comments/${commentId}`),
   benchImport: (rows, buMap, dryRun, createAccounts) => post('/bench/import', { rows, buMap, dryRun, createAccounts }),
   benchReport: (period, date) => get(`/bench/report?period=${period}&date=${date}`),
-  getOverview: (categoryId) => get(`/overview${categoryId ? `?category=${categoryId}` : ''}`),
+    getOverview: (categoryId, view) => get(`/overview${qs({ category: categoryId, view: view && view !== 'all' ? view : undefined })}`),
   exportEngineers: () => get('/tracking/export/engineers'),
   updateMyMenu: (menuConfig) => patch('/users/me/menu', { menuConfig }),
   listCategories: () => get('/categories'),

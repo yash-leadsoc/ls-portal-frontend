@@ -37,15 +37,16 @@ export default function OverviewDashboard() {
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState('');
+    const [view, setView] = useState('all');
 
   useEffect(() => { if (canFilter) api.listCategories().then((r) => setCategories(r.categories || [])).catch(() => {}); }, [canFilter]);
 
   const load = async () => {
     setLoading(true);
-    try { setData(await api.getOverview(category || undefined)); }
+        try { setData(await api.getOverview(category || undefined, view)); }
     catch (e) { toastError(e); } finally { setLoading(false); }
   };
-  useEffect(() => { load();  }, [category]);
+   useEffect(() => { load();  }, [category, view]);
 
   if (loading || !data) return <LoadingPage />;
   const k = data.kpis; const c = data.charts;
@@ -55,7 +56,17 @@ export default function OverviewDashboard() {
       <div className="page-head" style={{ display: 'flex', alignItems: 'flex-end', gap: 12 }}>
         <div style={{ flex: 1 }}>
           <h1>Portal overview</h1>
-          <p>Key numbers across the {category ? 'selected category' : 'whole organisation'}.</p>
+            <p>
+            Key numbers across the {category ? 'selected category' : 'whole organisation'}
+            {view === 'bench' ? ' — bench engineers only' : view === 'deployed' ? ' — deployed engineers only' : ''}.
+          </p>
+        </div>
+        <div className="row" style={{ gap: 6 }}>
+          {[['all', 'All'], ['bench', 'Bench'], ['deployed', 'Deployed']].map(([v, label]) => (
+            <button key={v} className={`chip ${view === v ? 'active' : ''}`} onClick={() => setView(v)}>
+              {label}
+            </button>
+          ))}
         </div>
         {canFilter && (
           <select className="select" style={{ maxWidth: 220 }} value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -67,8 +78,10 @@ export default function OverviewDashboard() {
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12 }}>
         <Kpi label="Engineers" value={k.totalEngineers} />
-        <Kpi label="On bench" value={k.onBench} sub={`${k.onTraining} training · ${k.ongoingInterview} interview`} color="#f59e0b" />
-        <Kpi label="Deployed" value={k.deployed} color="#10b981" />
+        {view !== 'deployed' && (
+          <Kpi label="On bench" value={k.onBench} sub={`${k.onTraining} training · ${k.ongoingInterview} interview`} color="#f59e0b" />
+        )}
+        {view !== 'bench' && <Kpi label="Deployed" value={k.deployed} color="#10b981" />}
         <Kpi label="Trainers" value={k.totalTrainers} />
         {canFilter && <Kpi label="Business Units" value={k.totalBUs} />}
         {canFilter && <Kpi label="CTOs" value={k.totalCTOs} />}
@@ -80,8 +93,10 @@ export default function OverviewDashboard() {
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 14, marginTop: 14 }}>
         <ChartCard title="Engineers by status">
           <PieChart>
-            <Pie data={c.engineersByStatus} dataKey="value" nameKey="name" outerRadius={90} label>
-              {c.engineersByStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+            <Pie data={c.engineersByStatus.filter((s) => s.value > 0)} dataKey="value" nameKey="name" outerRadius={90} label>
+              {c.engineersByStatus.filter((s) => s.value > 0).map((s) => (
+                <Cell key={s.name} fill={COLORS[c.engineersByStatus.findIndex((x) => x.name === s.name) % COLORS.length]} />
+              ))}
             </Pie>
             <Tooltip />
           </PieChart>
