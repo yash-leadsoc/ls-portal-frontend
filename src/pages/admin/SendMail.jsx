@@ -27,7 +27,7 @@ function CampaignModal({ id, onClose }) {
   const [c, setC] = useState(null);
   useEffect(() => {
     let alive = true;
-    const load = () => api.mailCampaign(id).then((r) => alive && setC(r.campaign)).catch(() => { });
+    const load = () => api.mailCampaign(id).then((r) => alive && setC(r.campaign)).catch(() => {});
     load();
     const t = setInterval(load, 3000);
     return () => {
@@ -214,6 +214,35 @@ function MailSettings({ config, onChanged }) {
             <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>
               The portal signs in to your mailbox to check the password, then stores it encrypted. Only you send with it.
             </div>
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Password-reset codes</div>
+              <div className="muted" style={{ fontSize: 12, margin: '2px 0 8px' }}>
+                {config.systemSender
+                  ? `Sent from ${config.systemSender.email}${config.systemSender.isMe ? ' (your mailbox)' : ''}.`
+                  : 'Not set — forgot-password emails use the first main admin mailbox that is connected.'}
+              </div>
+              {config.canEditServer && config.account && !(config.systemSender && config.systemSender.isMe) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy === 'system'}
+                  onClick={async () => {
+                    setBusy('system');
+                    try {
+                      const r = await api.mailUseForSystem();
+                      toast(r.message);
+                      onChanged();
+                    } catch (e) {
+                      toastError(e);
+                    } finally {
+                      setBusy('');
+                    }
+                  }}
+                >
+                  Use my mailbox for these
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -229,18 +258,14 @@ export default function SendMail() {
   const [selected, setSelected] = useState(new Set());
   const [q, setQ] = useState('');
   const [subject, setSubject] = useState('');
-  const [body, setBody] = useState(
-    'Dear {{name}},\n\n\n\nRegards,'
-  );
-
-  const [isHtml, setIsHtml] = useState(false);
+  const [body, setBody] = useState('Dear {{name}},\n\n\n\nRegards,');
   const [preview, setPreview] = useState(null);
   const [sending, setSending] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
   const [openId, setOpenId] = useState(null);
   const bodyRef = useRef(null);
 
-  const loadCampaigns = () => api.mailCampaigns().then((r) => setCampaigns(r.campaigns || [])).catch(() => { });
+  const loadCampaigns = () => api.mailCampaigns().then((r) => setCampaigns(r.campaigns || [])).catch(() => {});
 
   useEffect(() => {
     api.mailConfig().then(setConfig).catch((e) => toastError(e));
@@ -316,17 +341,7 @@ export default function SendMail() {
       const r = await api.mailPreview({
         subject,
         body,
-        isHtml,
-
-        ...(first
-          ? {
-            name: first.name,
-            email: first.email,
-            employeeCode: first.employeeCode,
-            roleLabel: first.roleLabel,
-            buName: first.buName,
-          }
-          : {}),
+        ...(first ? { name: first.name, email: first.email, employeeCode: first.employeeCode, roleLabel: first.roleLabel, buName: first.buName } : {}),
       });
       setPreview({ ...r, who: first ? first.name : 'a sample person' });
     } catch (e) {
@@ -343,13 +358,7 @@ export default function SendMail() {
     setSending(true);
     try {
       const ids = receivable.filter((p) => selected.has(p.id)).map((p) => p.id);
-      const r = await api.mailSend({
-        subject,
-        body,
-        isHtml,
-        group,
-        userIds: ids,
-      });
+      const r = await api.mailSend({ subject, body, group, userIds: ids });
       toast(`Sending to ${r.campaign.total} recipient(s)…`);
       setOpenId(r.campaign.id);
       loadCampaigns();
@@ -430,37 +439,6 @@ export default function SendMail() {
 
         <div className="card" style={{ padding: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 750, color: 'var(--navy)', marginBottom: 10 }}>2. Message</div>
-          <div
-            className="row"
-            style={{
-              gap: 8,
-              marginBottom: 12,
-              alignItems: 'center',
-            }}
-          >
-            <span
-              className="muted"
-              style={{ fontSize: 12.5 }}
-            >
-              Message type:
-            </span>
-
-            <button
-              type="button"
-              className={`chip ${!isHtml ? 'active' : ''}`}
-              onClick={() => setIsHtml(false)}
-            >
-              📝 Plain Text
-            </button>
-
-            <button
-              type="button"
-              className={`chip ${isHtml ? 'active' : ''}`}
-              onClick={() => setIsHtml(true)}
-            >
-              💻 HTML Email
-            </button>
-          </div>
           <div className="field">
             <label>From</label>
             <input className="input" readOnly value={config ? `${config.from.name} <${config.sendsAs}>` : ''} />
@@ -471,32 +449,8 @@ export default function SendMail() {
             <input className="input" value={subject} maxLength={200} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Training schedule for {{firstName}}" />
           </div>
           <div className="field" style={{ marginBottom: 6 }}>
-            <label>
-              {isHtml ? 'HTML Email' : 'Message'}
-            </label>
-            <textarea
-              ref={bodyRef}
-              className="textarea"
-              rows={isHtml ? 22 : 12}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder={
-                isHtml
-                  ? '<!DOCTYPE html>\n<html>\n...\n</html>'
-                  : 'Write your email message...'
-              }
-              style={
-                isHtml
-                  ? {
-                    fontFamily:
-                      'Consolas, Monaco, "Courier New", monospace',
-                    fontSize: 12.5,
-                    lineHeight: 1.55,
-                    minHeight: 420,
-                  }
-                  : undefined
-              }
-            />
+            <label>Message</label>
+            <textarea ref={bodyRef} className="textarea" rows={12} value={body} onChange={(e) => setBody(e.target.value)} />
           </div>
           <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
             <span className="muted" style={{ fontSize: 12 }}>Insert:</span>
@@ -506,26 +460,8 @@ export default function SendMail() {
               </button>
             ))}
           </div>
-          <div
-            className="muted"
-            style={{
-              fontSize: 11.5,
-              marginBottom: 12,
-              lineHeight: 1.6,
-            }}
-          >
-            {isHtml ? (
-              <>
-                HTML mode sends your content as a fully formatted HTML email.
-                You can use {'{{name}}'}, {'{{firstName}}'}, {'{{employeeCode}}'},
-                {' {{bu}}'}, {'{{role}}'} and {'{{email}}'} for personalization.
-              </>
-            ) : (
-              <>
-                Each person receives their own personalised copy.
-                Links are clickable automatically.
-              </>
-            )}
+          <div className="muted" style={{ fontSize: 11.5, marginBottom: 12 }}>
+            Each person receives their own copy with their details filled in. Links are clickable automatically.
           </div>
           <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
             <Button variant="ghost" onClick={showPreview}>👁 Preview</Button>
