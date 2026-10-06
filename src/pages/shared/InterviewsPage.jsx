@@ -40,7 +40,14 @@ export default function InterviewsPage() {
       </div>
 
       {tab === 'prep' && <InterviewPrep role={role} />}
-      {tab === 'mock' && <MockTab isStaff={isStaff} isEmployee={isEmployee} user={user} />}
+      {tab === 'mock' && (
+        <MockTab
+          isStaff={isStaff}
+          canManage={['admin', 'bu', 'manager'].includes(role) || (role === 'cto' && (user.permissions || []).includes('interviews_manage'))}
+          isEmployee={isEmployee}
+          user={user}
+        />
+      )}
       {tab === 'client' && <ClientTab role={role} />}
       {tab === 'availability' && <AvailabilityTab isEmployee={isEmployee} />}
       {tab === 'companies' && role === 'admin' && <CompaniesTab />}
@@ -295,7 +302,7 @@ function UploadMaterialModal({ companies, onClose, onDone }) {
   );
 }
 
-function MockTab({ isStaff, isEmployee, user }) {
+function MockTab({ isStaff, canManage, isEmployee, user }) {
   const { toast, toastError } = useToast();
   const [mocks, setMocks] = useState([]); const [loading, setLoading] = useState(true);
   const [show, setShow] = useState(false); const [scoreFor, setScoreFor] = useState(null);
@@ -309,11 +316,9 @@ function MockTab({ isStaff, isEmployee, user }) {
 
   return (
     <>
-      {isStaff && (
+      {canManage && (
         <div className="row" style={{ justifyContent: 'flex-end', marginBottom: 12 }}>
-
-          {(user.role !== 'cto' &&
-            <Button variant="cyan" size="sm" onClick={() => setShow(true)}>+ Schedule mock</Button>)}
+          <Button variant="cyan" size="sm" onClick={() => setShow(true)}>+ Schedule mock</Button>
         </div>
       )}
       {loading ? <LoadingPage /> : mocks.length === 0 ? <Empty>No mock interviews yet.</Empty> : (
@@ -322,7 +327,7 @@ function MockTab({ isStaff, isEmployee, user }) {
             <thead><tr style={{ background: '#f8fafc' }}>
               <th style={th}>Engineer</th><th style={th}>Role</th><th style={th}>When</th>
               <th style={th}>Meet</th><th style={th}>Status</th><th style={th}>Score</th>
-              {isStaff && <th style={{ ...th, textAlign: 'right' }}>Action</th>}
+              {canManage && <th style={{ ...th, textAlign: 'right' }}>Action</th>}
             </tr></thead>
             <tbody>
               {mocks.map((m) => (
@@ -333,7 +338,7 @@ function MockTab({ isStaff, isEmployee, user }) {
                   <td style={td}>{m.meetLink ? <a href={m.meetLink} target="_blank" rel="noreferrer">Join</a> : '—'}</td>
                   <td style={td}><Badge kind={MOCK_STATUS[m.status]}>{m.status}</Badge></td>
                   <td style={td}>{m.score != null ? `${m.score}/10` : '—'}</td>
-                  {isStaff && <td style={{ ...td, textAlign: 'right' }}><Button variant="ghost" size="sm" onClick={() => setScoreFor(m)}>Score</Button></td>}
+                                   {canManage && <td style={{ ...td, textAlign: 'right' }}><Button variant="ghost" size="sm" onClick={() => setScoreFor(m)}>Score</Button></td>}
                 </tr>
               ))}
             </tbody>

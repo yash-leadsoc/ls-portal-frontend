@@ -28,6 +28,7 @@ const InsightsPage = lazy(() => import('./pages/shared/InsightsPage'));
 const InterviewsPage = lazy(() => import('./pages/shared/InterviewsPage'));
 const RecycleBin = lazy(() => import('./pages/shared/RecycleBin'));
 const BenchTracker = lazy(() => import('./pages/admin/BenchTracker'));
+const SendMail = lazy(() => import('./pages/admin/SendMail'));
 function AdminRoutes() {
   const { user } = useAuth();
   const fullAdmin = !user.subAdmin;
@@ -45,6 +46,7 @@ function AdminRoutes() {
       <Route path="/community" element={<Community />} />
       {fullAdmin && <Route path="/insights" element={<InsightsPage />} />}
       {fullAdmin && <Route path="/logs" element={<LogsPage />} />}
+      {fullAdmin && <Route path="/mail" element={<SendMail />} />}
       <Route path="/interviews" element={<InterviewsPage />} />
        <Route path="/bench" element={<BenchTracker />} />
       <Route path="/account" element={<AccountPage />} />

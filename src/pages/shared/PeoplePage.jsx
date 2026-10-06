@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api, uid } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { Button, Badge, Modal, LoadingPage, Empty, Spinner, initials } from '../../components/ui';
@@ -11,23 +11,6 @@ const thStyle = { padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#
 const tdStyle = { padding: '12px 14px', fontSize: 13, verticalAlign: 'middle' };
 const STATUS_LABEL = { on_training: 'On training', ongoing_interview: 'Ongoing interview', deployed: 'Deployed' };
 const STATUS_KIND = { on_training: 'info', ongoing_interview: 'warning', deployed: 'success' };
-
-
-const usePersisted = (key, initial) => {
-  const [v, setV] = useState(() => {
-    try {
-      const s = sessionStorage.getItem(`people:${key}`);
-      return s != null ? JSON.parse(s) : initial;
-    } catch (e) {
-      return initial;
-    }
-  });
-  useEffect(() => {
-    try { sessionStorage.setItem(`people:${key}`, JSON.stringify(v)); } catch (e) {}
-  }, [key, v]);
-  return [v, setV];
-};
-
 
 export default function PeoplePage() {
   const { user } = useAuth();
@@ -40,9 +23,7 @@ export default function PeoplePage() {
   const tabs = role === 'admin'
     ? ['bus', 'employees', 'managers', 'ctos', ...(fullAdmin ? ['subadmins'] : [])]
     : role === 'cto' ? ['bus', 'employees', 'managers'] : isBU ? ['managers', 'employees'] : ['employees'];
-  const [params, setParams] = useSearchParams();
-  const tab = tabs.includes(params.get('tab')) ? params.get('tab') : tabs[0];
-  const setTab = (t) => setParams((p) => { const n = new URLSearchParams(p); n.set('tab', t); return n; }, { replace: true });
+  const [tab, setTab] = useState(tabs[0]);
 
   const [bus, setBus] = useState([]);
   const [subadmins, setSubadmins] = useState([]);
@@ -62,6 +43,8 @@ export default function PeoplePage() {
   const [manageBU, setManageBU] = useState(null);
   const [scope, setScope] = useState(null);
   const [pwUser, setPwUser] = useState(null);
+  const [mgmtEdit, setMgmtEdit] = useState(null);
+  const [showProfiles, setShowProfiles] = useState(false);
   const [subFilter, setSubFilter] = useState('');
   const [headOnly, setHeadOnly] = useState([]);
   const [trainerDomainFilter, setTrainerDomainFilter] = useState('');
@@ -96,11 +79,11 @@ export default function PeoplePage() {
 
   const ActionButtons = ({ u, label, canToggle, canDelete }) => (
     <span onClick={(e) => e.stopPropagation()} style={{ whiteSpace: 'nowrap' }}>
-      {/*{fullAdmin && (
+      {/* {fullAdmin && (
         <Button size="sm" variant="ghost" style={{ marginLeft: 6 }} title="Show password" onClick={() => setPwUser(u)}>
           🔑
         </Button>
-      )}*/}
+      )} */}
       {canToggle && (
         <Button size="sm" variant={u.active ? 'ghost' : 'cyan'} style={{ marginLeft: 6 }} onClick={() => toggleActive(u, label)}>
           {u.active ? 'Deactivate' : 'Activate'}
@@ -160,8 +143,8 @@ export default function PeoplePage() {
 
   const list = tab === 'bus' ? bus : tab === 'ctos' ? ctos : tab === 'subadmins' ? subadmins : tab === 'managers' ? managers : employees;
 
-  const tabLabel = (t) => (t === 'bus' ? 'BUs' : t === 'ctos' ? 'CTOs' : t === 'subadmins' ? 'Sub admins' : t === 'managers' ? 'Trainers' : 'Engineers');
-  const addLabel = tab === 'bus' ? 'BU' : tab === 'ctos' ? 'CTO' : tab === 'subadmins' ? 'sub admin' : tab === 'managers' ? 'trainer' : 'engineer';
+  const tabLabel = (t) => (t === 'bus' ? 'BUs' : t === 'ctos' ? 'Management' : t === 'subadmins' ? 'Sub admins' : t === 'managers' ? 'Trainers' : 'Engineers');
+  const addLabel = tab === 'bus' ? 'BU' : tab === 'ctos' ? 'management user' : tab === 'subadmins' ? 'sub admin' : tab === 'managers' ? 'trainer' : 'engineer';
   const addModal = tab === 'bus' ? 'bu' : tab === 'ctos' ? 'cto' : tab === 'subadmins' ? 'subadmin' : tab === 'managers' ? 'manager' : 'employee';
 
   const showAdd = canWrite && (role === 'admin' || !(isAdminLike && tab === 'employees'));
@@ -232,6 +215,11 @@ export default function PeoplePage() {
             📤 Bulk upload engineers
           </Button>
         )}
+        {role === 'admin' && tab === 'ctos' && (
+          <Button variant="ghost" onClick={() => setShowProfiles(true)} style={{ marginRight: 8 }}>
+            🔐 Access by designation
+          </Button>
+        )}
         {showAdd && (
           <Button variant="cyan" onClick={() => setModal(addModal)}>+ Add {addLabel}</Button>
         )}
@@ -255,19 +243,25 @@ export default function PeoplePage() {
         <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr style={{ background: '#f8fafc', textAlign: 'left' }}>
-              <th style={thStyle}>CTO</th><th style={thStyle}>Email</th><th style={thStyle}>ID</th><th style={thStyle}>Status</th>
+              <th style={thStyle}>Name</th><th style={thStyle}>Designation</th><th style={thStyle}>Email</th><th style={thStyle}>ID</th>
+              <th style={thStyle}>Access</th><th style={thStyle}>Status</th>
               {role === 'admin' && <th style={{ ...thStyle, textAlign: 'right' }}>Action</th>}
             </tr></thead>
             <tbody>
               {ctos.map((u) => (
                 <tr key={uid(u)} style={{ borderTop: '1px solid #eef2f7' }}>
                   <td style={tdStyle}><div className="row gap-8" style={{ alignItems: 'center' }}><div className="avatar" style={{ width: 30, height: 30, fontSize: 12 }}>{initials(u.name)}</div><span style={{ fontWeight: 700, color: 'var(--navy)' }}>{u.name}</span></div></td>
+                  <td style={tdStyle}><Badge kind="info">{u.designation || 'CTO'}</Badge></td>
                   <td style={{ ...tdStyle, color: 'var(--muted)' }}>{u.email}</td>
                   <td style={tdStyle}><Badge kind="neutral">{u.employeeCode || '—'}</Badge></td>
+                  <td style={{ ...tdStyle, fontSize: 12, color: '#475569' }}>
+                    {(u.permissions || []).length} areas{u.customPermissions ? ' · custom' : ''}
+                  </td>
                   <td style={tdStyle}><Badge kind={u.active ? 'success' : 'neutral'}>{u.active ? 'Active' : 'Inactive'}</Badge></td>
                   {role === 'admin' && (
                     <td style={{ ...tdStyle, textAlign: 'right' }}>
-                      <ActionButtons u={u} label="CTO" canToggle canDelete />
+                      <Button size="sm" variant="ghost" onClick={() => setMgmtEdit(u)}>🔐 Access</Button>
+                      <ActionButtons u={u} label="Management user" canToggle canDelete />
                     </td>
                   )}
                 </tr>
@@ -487,7 +481,7 @@ export default function PeoplePage() {
                               style={{ marginRight: 6 }}
                               onClick={(e) => { e.stopPropagation(); setEditEngineer(u); }}
                             >
-                              ✏️
+                              ✏️ Edit
                             </Button>
                           )}
                           <ActionButtons u={u} label="Engineer" canToggle={canWrite} canDelete={role === 'admin' || isBU} />
@@ -587,6 +581,8 @@ export default function PeoplePage() {
       )}
 
       {pwUser && <PasswordModal target={pwUser} onClose={() => setPwUser(null)} />}
+      {mgmtEdit && <ManagementAccessModal target={mgmtEdit} onClose={() => setMgmtEdit(null)} onSaved={() => { setMgmtEdit(null); load(); }} />}
+      {showProfiles && <DesignationProfilesModal onClose={() => { setShowProfiles(false); load(); }} />}
 
       {manageBU && (
         <ManageBUModal
@@ -650,6 +646,7 @@ function RegisterModal({ role, creatorRole, scopeUnits, onClose, onDone }) {
   const [employeeCode, setEmployeeCode] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [buKind, setBuKind] = useState('bu');
+  const [designation, setDesignation] = useState('CTO');
   const [businessUnit, setBusinessUnit] = useState('');
   const [managerId, setManagerId] = useState('');
   const [benchStart, setBenchStart] = useState(new Date().toISOString().slice(0, 10));
@@ -684,7 +681,7 @@ function RegisterModal({ role, creatorRole, scopeUnits, onClose, onDone }) {
       if (role === 'subadmin') {
         await api.createSubAdmin(name.trim(), email.trim(), password, employeeCode.trim());
       } else if (role === 'cto') {
-        await api.createCTO(name.trim(), email.trim(), password, employeeCode.trim());
+        await api.createCTO(name.trim(), email.trim(), password, employeeCode.trim(), designation.trim() || 'CTO');
       } else if (role === 'bu') {
         await api.createBU(name.trim(), email.trim(), password, employeeCode.trim(), buKind === 'head' ? undefined : categoryId, buKind);
       } else if (role === 'manager') {
@@ -695,7 +692,7 @@ function RegisterModal({ role, creatorRole, scopeUnits, onClose, onDone }) {
           businessUnit || undefined, benchStart || undefined, jobStatus
         );
       }
-      toast(`${role === 'subadmin' ? 'Sub admin' : role === 'cto' ? 'CTO' : role === 'bu' ? 'Business Unit' : role === 'manager' ? 'Trainer' : 'Engineer'} registered`);
+      toast(`${role === 'subadmin' ? 'Sub admin' : role === 'cto' ? 'Management user' : role === 'bu' ? 'Business Unit' : role === 'manager' ? 'Trainer' : 'Engineer'} registered`);
       onDone();
     } catch (e) {
       toastError(e);
@@ -704,7 +701,7 @@ function RegisterModal({ role, creatorRole, scopeUnits, onClose, onDone }) {
     }
   };
 
-  const titleMap = { subadmin: 'Register sub admin', cto: 'Register CTO', bu: 'Register Business Unit', manager: 'Register trainer', employee: 'Register engineer' };
+  const titleMap = { subadmin: 'Register sub admin', cto: 'Register management user', bu: 'Register Business Unit', manager: 'Register trainer', employee: 'Register engineer' };
 
   return (
     <Modal
@@ -732,6 +729,17 @@ function RegisterModal({ role, creatorRole, scopeUnits, onClose, onDone }) {
         <label>{role === 'bu' ? (buKind === 'head' ? 'BU head name' : 'BU name') : 'Full name'}</label>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={role === 'bu' ? 'e.g. VLSI Frontend Team' : 'e.g. Arjun Nair'} />
       </div>
+
+      {role === 'cto' && (
+        <div className="field">
+          <label>Designation</label>
+          <input className="input" list="mgmt-designations" value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="CEO, CTO, CSO, CFO, COO, HR…" />
+          <datalist id="mgmt-designations">
+            {['CEO', 'CTO', 'CSO', 'CFO', 'COO', 'HR'].map((d) => <option key={d} value={d} />)}
+          </datalist>
+          <div className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>Access comes from the designation's settings; you can customise it per person later.</div>
+        </div>
+      )}
 
       {!(role === 'bu' && buKind === 'unit') && (
         <div className="field">
@@ -1329,6 +1337,184 @@ function PasswordModal({ target, onClose }) {
           </>
         )}
       </div>
+    </Modal>
+  );
+}
+
+function useMgmtMeta() {
+  const [meta, setMeta] = useState(null);
+  useEffect(() => {
+    api.getMgmtProfiles().then(setMeta).catch(() => setMeta({ perms: [], designations: [], profiles: {} }));
+  }, []);
+  return [meta, setMeta];
+}
+
+function ManagementAccessModal({ target, onClose, onSaved }) {
+  const { toast, toastError } = useToast();
+  const [meta] = useMgmtMeta();
+  const [designation, setDesignation] = useState(target.designation || 'CTO');
+  const [custom, setCustom] = useState(!!target.customPermissions);
+  const [perms, setPerms] = useState(target.customPermissions || target.permissions || []);
+  const [busy, setBusy] = useState(false);
+
+  const profilePerms = (meta && (meta.profiles[designation] || meta.profiles.default)) || [];
+  const shown = custom ? perms : profilePerms;
+
+  const toggle = (k) => setPerms((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]));
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await api.updateManagement(uid(target), { designation: designation.trim() || 'CTO', permissions: custom ? perms : null });
+      toast('Access updated');
+      onSaved();
+    } catch (e) {
+      toastError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      title={`Access — ${target.name}`}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="cyan" onClick={save} disabled={busy || !meta}>{busy ? <Spinner sm /> : 'Save'}</Button>
+        </>
+      }
+    >
+      {!meta ? (
+        <LoadingPage />
+      ) : (
+        <div style={{ maxWidth: 560 }}>
+          <div className="field">
+            <label>Designation</label>
+            <input className="input" list="mgmt-designations-edit" value={designation} onChange={(e) => setDesignation(e.target.value)} />
+            <datalist id="mgmt-designations-edit">
+              {meta.designations.map((d) => <option key={d} value={d} />)}
+            </datalist>
+          </div>
+          <label className="row gap-8" style={{ fontSize: 13, marginBottom: 10 }}>
+            <input
+              type="checkbox"
+              checked={custom}
+              onChange={(e) => {
+                setCustom(e.target.checked);
+                if (e.target.checked && !perms.length) setPerms(profilePerms);
+              }}
+            />
+            Customise access for this person (otherwise uses the {designation || 'designation'} settings)
+          </label>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 8 }}>
+            {meta.perms.map((p) => (
+              <label key={p.key} className="row gap-8" style={{ padding: '6px 4px', fontSize: 13, opacity: custom ? 1 : 0.65 }}>
+                <input type="checkbox" disabled={!custom} checked={shown.includes(p.key)} onChange={() => toggle(p.key)} />
+                {p.label}
+              </label>
+            ))}
+          </div>
+          <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>
+            Management users can only view, except "Schedule & score mock interviews". Changes apply at their next page load.
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+function DesignationProfilesModal({ onClose }) {
+  const { toast, toastError } = useToast();
+  const [meta, setMeta] = useMgmtMeta();
+  const [newName, setNewName] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const designations = meta ? meta.designations : [];
+  const toggle = (d, k) =>
+    setMeta((m) => {
+      const cur = m.profiles[d] || m.profiles.default || [];
+      const next = cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k];
+      return { ...m, profiles: { ...m.profiles, [d]: next } };
+    });
+
+  const addDesignation = () => {
+    const d = newName.trim();
+    if (!d) return;
+    setMeta((m) => ({
+      ...m,
+      designations: m.designations.includes(d) ? m.designations : [...m.designations, d],
+      profiles: { ...m.profiles, [d]: m.profiles[d] || [...(m.profiles.default || [])] },
+    }));
+    setNewName('');
+  };
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const profiles = {};
+      designations.forEach((d) => (profiles[d] = meta.profiles[d] || meta.profiles.default || []));
+      await api.saveMgmtProfiles(profiles);
+      toast('Access by designation saved');
+      onClose();
+    } catch (e) {
+      toastError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Access by designation"
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="cyan" onClick={save} disabled={busy || !meta}>{busy ? <Spinner sm /> : 'Save'}</Button>
+        </>
+      }
+    >
+      {!meta ? (
+        <LoadingPage />
+      ) : (
+        <div style={{ maxWidth: 900 }}>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>Can see / do</th>
+                  {designations.map((d) => <th key={d}>{d}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {meta.perms.map((p) => (
+                  <tr key={p.key}>
+                    <td style={{ textAlign: 'left', whiteSpace: 'normal' }}>{p.label}</td>
+                    {designations.map((d) => (
+                      <td key={d}>
+                        <input
+                          type="checkbox"
+                          checked={(meta.profiles[d] || meta.profiles.default || []).includes(p.key)}
+                          onChange={() => toggle(d, p.key)}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="row gap-8" style={{ marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input className="input" style={{ maxWidth: 220 }} placeholder="New designation, e.g. VP Delivery" value={newName} onChange={(e) => setNewName(e.target.value)} />
+            <Button size="sm" variant="ghost" onClick={addDesignation}>+ Add designation</Button>
+          </div>
+          <div className="muted" style={{ fontSize: 11.5, marginTop: 8 }}>
+            People with "Customise access" keep their own settings. Everyone else follows their designation.
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }

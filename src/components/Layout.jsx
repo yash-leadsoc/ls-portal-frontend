@@ -10,7 +10,7 @@ import { useUsageTracking } from '../services/usageTracker';
 const TRAINING = (withDomains = true) => ({
   group: 'Training', icon: '🎓',
   children: [
-    { to: '/training-overview', label: 'Training Overview', icon: '📈', key: 'cohort' },
+    { to: '/training-overview', label: 'Cohort Overview', icon: '📈', key: 'cohort' },
     { to: '/materials', label: 'Materials', icon: '📁', key: 'materials' },
     ...(withDomains ? [{ to: '/domains', label: 'Domains', icon: '🗂️', key: 'domains' }] : []),
     { to: '/community', label: 'Community', icon: '💬', key: 'community' },
@@ -25,6 +25,7 @@ const NAV = {
     TRAINING(true),
     { to: '/interviews', label: 'Interviews', icon: '🎤' },
     { to: '/bench', label: 'Bench Tracker', icon: '🪑' },
+    { to: '/mail', label: 'Send mail', icon: '✉️' },
     { to: '/insights', label: 'Insights', icon: '📈' },
     { to: '/recycle-bin', label: 'Recycle Bin', icon: '🗑️' },
     { to: '/account', label: 'Settings', icon: '⚙️' },
@@ -62,7 +63,15 @@ const NAV = {
   ],
 };
 
-const ROLE_LABEL = { admin: 'Administrator', cto: 'CTO', bu: 'Business Unit', manager: 'Trainer', employee: 'Engineer' };
+const ROLE_LABEL = { admin: 'Administrator', cto: 'Management', bu: 'Business Unit', manager: 'Trainer', employee: 'Engineer' };
+
+const MGMT_PERM = { '/': 'overview', '/people': 'people', '/interviews': 'interviews', '/insights': 'insights' };
+function filterMgmt(items, perms = []) {
+  const can = (k) => perms.includes(k);
+  return items
+    .map((it) => (it.group ? (can('training') ? it : null) : !MGMT_PERM[it.to] || can(MGMT_PERM[it.to]) ? it : null))
+    .filter(Boolean);
+}
 
 function applyMenuConfig(items, cfg) {
   if (!cfg || cfg.length === 0) return items;
@@ -86,6 +95,7 @@ export default function Layout({ children }) {
 
   let items = NAV[user.role] || [];
   if (user.role === 'bu') items = applyMenuConfig(items, user.menuConfig);
+  if (user.role === 'cto') items = filterMgmt(items, user.permissions || []);
   if (user.subAdmin) items = items.filter((i) => i.to !== '/insights' && i.to !== '/logs');
 
   const [openGroups, setOpenGroups] = useState(() => {
@@ -155,7 +165,7 @@ export default function Layout({ children }) {
           <div style={{ flex: 1 }}>
             <div className="title">{title}</div>
             <div className="subtitle hide-mobile">
-              {user.subAdmin ? 'Sub admin' : ROLE_LABEL[user.role]} workspace
+              {user.subAdmin ? 'Sub admin' : user.role === 'cto' ? user.designation || 'Management' : ROLE_LABEL[user.role]} workspace
               {user.role === 'bu' && (user.units || []).length > 0 && (() => {
                 const cur = user.units.find((u) => u.id === getActiveUnit()) || user.units[0];
                 return cur ? ` · ${cur.name}${cur.type === 'temporary' ? ' (temporary)' : ''}` : '';
