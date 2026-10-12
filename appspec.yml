@@ -1,0 +1,15 @@
+version: 0.0
+os: linux
+files:
+  - source: dist
+    destination: /home/ubuntu/app/releases/frontend
+file_exists_behavior: OVERWRITE
+hooks:
+  AfterInstall:
+    - location: deploy/after_install.sh
+      timeout: 300
+      runas: root
+  ValidateService:
+    - location: deploy/validate.sh
+      timeout: 60
+      runas: root

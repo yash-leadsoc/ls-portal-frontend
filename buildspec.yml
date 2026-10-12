@@ -1,0 +1,22 @@
+version: 0.2
+
+env:
+  variables:
+    VITE_API_URL: /api
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+  build:
+    commands:
+      - npm ci --no-audit --no-fund
+      - npm run build
+      - test -f dist/index.html
+      - chmod +x deploy/*.sh
+
+artifacts:
+  files:
+    - 'dist/**/*'
+    - appspec.yml
+    - 'deploy/**/*'
