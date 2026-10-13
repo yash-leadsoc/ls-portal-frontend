@@ -114,9 +114,11 @@ export default function Layout({ children }) {
       <div className={`backdrop ${open ? 'show' : ''}`} onClick={() => setOpen(false)} />
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="brand">
-          <div className="logo">LS</div>
-          <div><b>LeadSoC</b><br /><span>TEDP</span></div>
+          {/* <div className="logo">LS</div>
+          <div><b>LeadSoC</b><br /><span>TEDP</span></div> */}
+          <img src="/logo-full.png?v=1" alt="LeadSoC" style={{ width: 150, height: 'auto', display: 'block' }} />
         </div>
+        
 
         <nav>
           {items.map((i, idx) =>

@@ -1,16 +1,96 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { api } from '../api/client';
-import { Button, Spinner } from '../components/ui';
+import { Spinner } from '../components/ui';
+import './auth.css';
 
-const boxStyle = (kind) => ({
-  background: kind === 'ok' ? '#ecfdf5' : 'var(--danger-bg)',
-  color: kind === 'ok' ? '#047857' : 'var(--danger)',
-  padding: '10px 12px',
-  borderRadius: 10,
-  fontSize: 13,
-  marginBottom: 16,
-});
+const LOGO_FULL = '/logo-full.png?v=1';
+
+const WAFER = (() => {
+  const n = 14;
+  const radius = 6.7;
+  const lit = new Set([4, 17, 29, 30, 52, 66, 81, 95, 96, 110, 127]);
+  const dies = [];
+  for (let row = 0; row < n; row += 1) {
+    for (let col = 0; col < n; col += 1) {
+      const x0 = col - n / 2;
+      const y0 = row - n / 2;
+      const inside = [[x0, y0], [x0 + 1, y0], [x0, y0 + 1], [x0 + 1, y0 + 1]].every(([x, y]) => Math.hypot(x, y) <= radius);
+      if (inside) dies.push({ col, row, key: `${col}-${row}` });
+    }
+  }
+  return { n, radius, dies: dies.map((d, i) => ({ ...d, lit: lit.has(i) })) };
+})();
+
+function WaferMap() {
+  const { n, radius, dies } = WAFER;
+  const cell = 20;
+  const c = (n / 2) * cell + 24;
+  const size = c * 2;
+  return (
+    <svg className="auth-wafer" viewBox={`0 0 ${size} ${size}`} aria-hidden="true" focusable="false">
+      <circle cx={c} cy={c} r={radius * cell + 8} className="auth-wafer-edge" />
+      <path d={`M ${c - 18} ${c + radius * cell + 8} h 36`} className="auth-wafer-notch" />
+      {dies.map((d, i) => (
+        <rect
+          key={d.key}
+          x={c + (d.col - n / 2) * cell + 1.5}
+          y={c + (d.row - n / 2) * cell + 1.5}
+          width={cell - 3}
+          height={cell - 3}
+          rx="1.5"
+          className={d.lit ? 'auth-die is-lit' : 'auth-die'}
+          style={d.lit ? { animationDelay: `${300 + i * 6}ms` } : undefined}
+        />
+      ))}
+    </svg>
+  );
+}
+
+function AuthShell({ children }) {
+  return (
+    <div className="auth-shell">
+      <aside className="auth-brand">
+        <img className="auth-logo" src={LOGO_FULL} alt="LeadSoC" />
+        <WaferMap />
+        <div className="auth-brand-copy">
+          <h1>Talent Enablement &amp; Deployment Platform</h1>
+          <p>Training, mock interviews, bench tracking and client deployment for LeadSoC engineers, in one place.</p>
+        </div>
+      </aside>
+      <main className="auth-main">{children}</main>
+    </div>
+  );
+}
+
+function Notice({ kind, children }) {
+  return (
+    <div className={`auth-notice ${kind === 'ok' ? 'is-ok' : 'is-err'}`} role={kind === 'ok' ? 'status' : 'alert'}>
+      {children}
+    </div>
+  );
+}
+
+function PasswordInput({ value, onChange, show, onToggle, autoComplete, placeholder, id }) {
+  return (
+    <div className="auth-password">
+      <input
+        id={id}
+        className="auth-input"
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+      />
+      {onToggle && (
+        <button type="button" className="auth-eye" onClick={onToggle} aria-label={show ? 'Hide password' : 'Show password'}>
+          {show ? 'Hide' : 'Show'}
+        </button>
+      )}
+    </div>
+  );
+}
 
 function ForgotPassword({ initialId, onDone, onCancel }) {
   const [step, setStep] = useState('request');
@@ -32,7 +112,7 @@ function ForgotPassword({ initialId, onDone, onCancel }) {
   const send = async (e) => {
     if (e) e.preventDefault();
     setMsg(null);
-    if (!identifier.trim()) return setMsg({ kind: 'err', text: 'Enter your email or Employee ID.' });
+    if (!identifier.trim()) return setMsg({ kind: 'err', text: 'Enter your email or employee ID.' });
     setBusy(true);
     try {
       const r = await api.forgotPassword(identifier.trim());
@@ -64,71 +144,63 @@ function ForgotPassword({ initialId, onDone, onCancel }) {
   };
 
   return (
-    <form className="login-card" onSubmit={step === 'request' ? send : reset}>
-      <div className="logo">LS</div>
-      <h2 style={{ textAlign: 'center', margin: '0 0 4px', color: 'var(--navy)', fontSize: 20 }}>Reset your password</h2>
-      <p style={{ textAlign: 'center', margin: '0 0 20px', color: 'var(--muted)', fontSize: 13.5 }}>
-        {step === 'request' ? 'We will email a 6-digit code to your registered email.' : 'Enter the code from your email and choose a new password.'}
+    <form className="auth-form" onSubmit={step === 'request' ? send : reset} noValidate>
+      <h2>Reset your password</h2>
+      <p className="auth-lead">
+        {step === 'request'
+          ? 'We will email a 6-digit code to the address registered on your account.'
+          : 'Enter the code from your email and choose a new password.'}
       </p>
 
-      {msg && <div style={boxStyle(msg.kind)}>{msg.text}</div>}
+      {msg && <Notice kind={msg.kind}>{msg.text}</Notice>}
 
-      <div className="field">
-        <label>Email or Employee ID</label>
+      <div className="auth-field">
+        <label htmlFor="fp-id">Email or employee ID</label>
         <input
-          className="input"
+          id="fp-id"
+          className="auth-input"
           value={identifier}
           onChange={(e) => setIdentifier(e.target.value)}
           disabled={step === 'verify'}
           autoComplete="username"
-          placeholder="you@leadsoc.com or LS-2291"
+          placeholder="you@leadsoc.com or LS2291"
         />
       </div>
 
       {step === 'verify' && (
         <>
-          <div className="field">
-            <label>6-digit code</label>
+          <div className="auth-field">
+            <label htmlFor="fp-otp">6-digit code</label>
             <input
-              className="input"
+              id="fp-otp"
+              className="auth-input auth-otp"
               inputMode="numeric"
+              autoComplete="one-time-code"
               maxLength={6}
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-              placeholder="••••••"
-              style={{ letterSpacing: 6, fontSize: 18, textAlign: 'center' }}
               autoFocus
             />
           </div>
-          <div className="field">
-            <label>New password</label>
-            <input className="input" type={show ? 'text' : 'password'} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" placeholder="At least 6 characters" />
+          <div className="auth-field">
+            <label htmlFor="fp-pw">New password</label>
+            <PasswordInput id="fp-pw" value={pw} onChange={(e) => setPw(e.target.value)} show={show} onToggle={() => setShow((s) => !s)} autoComplete="new-password" placeholder="At least 6 characters" />
           </div>
-          <div className="field">
-            <label>Confirm new password</label>
-            <input className="input" type={show ? 'text' : 'password'} value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" />
+          <div className="auth-field">
+            <label htmlFor="fp-pw2">Confirm new password</label>
+            <PasswordInput id="fp-pw2" value={pw2} onChange={(e) => setPw2(e.target.value)} show={show} autoComplete="new-password" />
           </div>
-          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12.5, color: 'var(--muted)', marginBottom: 8 }}>
-            <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} /> Show passwords
-          </label>
         </>
       )}
 
-      <Button variant="primary" block disabled={busy} style={{ marginTop: 6 }}>
+      <button className="auth-submit" disabled={busy}>
         {busy ? <Spinner sm /> : step === 'request' ? 'Send code' : 'Reset password'}
-      </Button>
+      </button>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, fontSize: 13 }}>
-        <button type="button" onClick={onCancel} style={{ background: 'none', border: 'none', color: '#0284a8', cursor: 'pointer', padding: 0 }}>
-          ← Back to sign in
-        </button>
+      <div className="auth-row">
+        <button type="button" className="auth-link" onClick={onCancel}>Back to sign in</button>
         {step === 'verify' && (
-          <button
-            type="button"
-            disabled={wait > 0 || busy}
-            onClick={() => send()}
-            style={{ background: 'none', border: 'none', color: wait > 0 ? 'var(--muted)' : '#0284a8', cursor: wait > 0 ? 'default' : 'pointer', padding: 0 }}
-          >
+          <button type="button" className="auth-link" disabled={wait > 0 || busy} onClick={() => send()}>
             {wait > 0 ? `Resend code in ${wait}s` : 'Resend code'}
           </button>
         )}
@@ -151,7 +223,7 @@ export default function Login() {
     e.preventDefault();
     setError('');
     if (!identifier.trim() || !password) {
-      setError('Enter an email / ID and password to continue.');
+      setError('Enter your email or employee ID and your password.');
       return;
     }
     setBusy(true);
@@ -166,7 +238,7 @@ export default function Login() {
 
   if (forgot) {
     return (
-      <div className="login-bg">
+      <AuthShell>
         <ForgotPassword
           initialId={identifier}
           onCancel={() => setForgot(false)}
@@ -178,102 +250,62 @@ export default function Login() {
             setNotice(text);
           }}
         />
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="login-bg">
-      <form className="login-card" onSubmit={submit}>
-        <div className="logo">LS</div>
-        <h2 style={{ textAlign: 'center', margin: '0 0 4px', color: 'var(--navy)', fontSize: 20 }}>
-          LeadSoC Training Portal
-        </h2>
-        <p style={{ textAlign: 'center', margin: '0 0 24px', color: 'var(--muted)', fontSize: 13.5 }}>
-          Sign in to continue
-        </p>
+    <AuthShell>
+      <form className="auth-form" onSubmit={submit} noValidate>
+        <h2>Sign in</h2>
+        <p className="auth-lead">Use your work email or employee ID. You will land in the workspace for your role.</p>
 
-        {notice && !error && <div style={boxStyle('ok')}>{notice}</div>}
+        {notice && !error && <Notice kind="ok">{notice}</Notice>}
+        {error && <Notice kind="err">{error}</Notice>}
 
-        {error && (
-          <div
-            style={{
-              background: 'var(--danger-bg)',
-              color: 'var(--danger)',
-              padding: '10px 12px',
-              borderRadius: 10,
-              fontSize: 13,
-              marginBottom: 16,
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        <div className="field">
-          <label>Email or Employee ID</label>
+        <div className="auth-field">
+          <label htmlFor="login-id">Email or employee ID</label>
           <input
-            className="input"
-            placeholder="admin@leadsoc.com or LS-2291"
+            id="login-id"
+            className="auth-input"
+            placeholder="you@leadsoc.com or LS2291"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
             autoComplete="username"
+            autoFocus
           />
         </div>
 
-        <div className="field">
-          <label>Password</label>
-          <div style={{ position: 'relative' }}>
-            <input
-              className="input"
-              type={show ? 'text' : 'password'}
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              style={{ paddingRight: 44 }}
-            />
+        <div className="auth-field">
+          <div className="auth-label-row">
+            <label htmlFor="login-pw">Password</label>
             <button
               type="button"
-              onClick={() => setShow((s) => !s)}
-              style={{
-                position: 'absolute',
-                right: 8,
-                top: 6,
-                background: 'none',
-                border: 'none',
-                fontSize: 16,
-                color: 'var(--muted)',
-                height: 32,
-                width: 32,
+              className="auth-link"
+              onClick={() => {
+                setError('');
+                setNotice('');
+                setForgot(true);
               }}
-              aria-label="Toggle password"
             >
-              {show ? '🙈' : '👁️'}
+              Forgot password?
             </button>
           </div>
+          <PasswordInput
+            id="login-pw"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            show={show}
+            onToggle={() => setShow((s) => !s)}
+            autoComplete="current-password"
+            placeholder="Your password"
+          />
         </div>
 
-        <div style={{ textAlign: 'right', margin: '-6px 0 10px' }}>
-          <button
-            type="button"
-            onClick={() => { setError(''); setNotice(''); setForgot(true); }}
-            style={{ background: 'none', border: 'none', color: '#0284a8', cursor: 'pointer', fontSize: 13, padding: 0 }}
-          >
-            Forgot password?
-          </button>
-        </div>
+        <button className="auth-submit" disabled={busy}>{busy ? <Spinner sm /> : 'Sign in'}</button>
 
-        <Button variant="primary" block disabled={busy} style={{ marginTop: 6 }}>
-          {busy ? <Spinner sm /> : 'Sign in'}
-        </Button>
-
-        <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--muted)', marginTop: 18, lineHeight: 1.5 }}>
-          One login for admins, managers and engineers.
-          <br />
-          You’re routed to the right workspace by your role.
-        </p>
+        <p className="auth-help">Trouble signing in? Contact your BU or the portal admin.</p>
       </form>
-    </div>
+    </AuthShell>
   );
 }

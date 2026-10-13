@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import { api, uid } from '../../api/client';
@@ -7,8 +8,10 @@ import { Button, Badge, Modal, LoadingPage, Empty, Spinner, initials } from '../
 import { useToast } from '../../components/Toast';
 import BulkEmployeeUpload from '../../components/BulkEmployeeUpload';
 
-const thStyle = { padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' };
-const tdStyle = { padding: '12px 14px', fontSize: 13, verticalAlign: 'middle' };
+// const thStyle = { padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' };
+// const tdStyle = { padding: '12px 14px', fontSize: 13, verticalAlign: 'middle' };
+const thStyle = { padding: '8px 12px', fontSize: 12, fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' };
+const tdStyle = { padding: '6px 12px', fontSize: 13, verticalAlign: 'middle' };
 const STATUS_LABEL = { on_training: 'On training', ongoing_interview: 'Ongoing interview', deployed: 'Deployed' };
 const STATUS_KIND = { on_training: 'info', ongoing_interview: 'warning', deployed: 'success' };
 
@@ -48,7 +51,8 @@ export default function PeoplePage() {
   const [subFilter, setSubFilter] = useState('');
   const [headOnly, setHeadOnly] = useState([]);
   const [trainerDomainFilter, setTrainerDomainFilter] = useState('');
-  const [trainerSearch, setTrainerSearch] = useState('');
+ const [trainerSearch, setTrainerSearch] = useState('');
+  const [engSearch, setEngSearch] = useState('');
   const [domains, setDomains] = useState([]);
   const [editTrainer, setEditTrainer] = useState(null);
   const { toast, toastError } = useToast();
@@ -129,8 +133,8 @@ export default function PeoplePage() {
 
   useEffect(() => {
     load();
-    api.listDomains().then((r) => setDomains(r.domains || [])).catch(() => {});
-    if (isBU) api.myScope().then(setScope).catch(() => {});
+    api.listDomains().then((r) => setDomains(r.domains || [])).catch(() => { });
+    if (isBU) api.myScope().then(setScope).catch(() => { });
   }, []);
 
   const isHead = isBU && !!scope?.isCategoryHead;
@@ -166,7 +170,10 @@ export default function PeoplePage() {
     (!ageFilter || ageBucket(u.benchDays) === ageFilter) &&
     (!domainFilter || idsOf(u.assignedDomains).includes(domainFilter)) &&
     (!trainerFilter || (trainerFilter === '__none' ? !u.trainerName : u.trainerName === trainerFilter)) &&
-    (!subFilter || unitIdOf(u) === subFilter);
+        (!subFilter || unitIdOf(u) === subFilter) &&
+    (!engSearch.trim() ||
+      [u.name, u.email, u.employeeCode, u.buName, u.categoryName, u.trainerName, u.phone]
+        .some((v) => String(v || '').toLowerCase().includes(engSearch.trim().toLowerCase())));
 
   const exportExcel = async () => {
     try {
@@ -363,7 +370,15 @@ export default function PeoplePage() {
           const rows = employees.filter(engMatch);
           return (
             <>
-              <div className="row gap-8" style={{ marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                           <div className="row gap-8" style={{ marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input
+                  className="input"
+                  type="search"
+                  style={{ maxWidth: 260 }}
+                  placeholder="Search name, LSID, email, BU…"
+                  value={engSearch}
+                  onChange={(e) => setEngSearch(e.target.value)}
+                />
                 {role !== 'manager' && (
                   <>
                     <select className="select" style={{ maxWidth: 180 }} value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
@@ -452,9 +467,20 @@ export default function PeoplePage() {
                       <tr key={uid(u)} style={{ borderTop: '1px solid #eef2f7', cursor: 'pointer' }} onClick={() => nav(`/employee/${uid(u)}`)}>
                         <td style={tdStyle}><Badge kind="neutral">{u.employeeCode || '—'}</Badge></td>
                         <td style={tdStyle}>
-                          <div className="row gap-8" style={{ alignItems: 'center' }}>
+                          {/* <div className="row gap-8" style={{ alignItems: 'center' }}>
                             <div className="avatar" style={{ width: 30, height: 30, fontSize: 12 }}>{initials(u.name)}</div>
                             <span style={{ fontWeight: 700, color: u.active === false ? 'var(--muted)' : 'var(--navy)' }}>{u.name}</span>
+                            {u.active === false && <Badge kind="danger">Inactive</Badge>} */}
+                          <div className="row gap-8" style={{ alignItems: 'center' }}>
+                            <div className="avatar" style={{ width: 28, height: 28, fontSize: 11, flexShrink: 0 }}>{initials(u.name)}</div>
+                            <div style={{ minWidth: 0, lineHeight: 1.25 }}>
+                              <div style={{ fontWeight: 700, color: u.active === false ? 'var(--muted)' : 'var(--navy)' }}>{u.name}</div>
+                              {u.email && (
+                                <div style={{ fontSize: 11.5, color: 'var(--muted)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={u.email}>
+                                  {u.email}
+                                </div>
+                              )}
+                            </div>
                             {u.active === false && <Badge kind="danger">Inactive</Badge>}
                             {u.trainerAccess && <Badge kind="info">Also trainer</Badge>}
                           </div>
@@ -473,7 +499,7 @@ export default function PeoplePage() {
                         </td>
                         <td style={{ ...tdStyle, color: '#334155' }}>{u.benchDays != null ? `${u.benchDays} days` : '—'}</td>
                         <td style={tdStyle}><Badge kind={STATUS_KIND[u.jobStatus] || 'neutral'}>{STATUS_LABEL[u.jobStatus] || '—'}</Badge></td>
-                        <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        {/* <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
                           {canWrite && (
                             <Button
                               size="sm"
@@ -486,6 +512,18 @@ export default function PeoplePage() {
                           )}
                           <ActionButtons u={u} label="Engineer" canToggle={canWrite} canDelete={role === 'admin' || isBU} />
                           <span style={{ color: '#0284a8', fontWeight: 700, marginLeft: 8 }}>View →</span>
+                        </td> */}
+                        <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                          <RowMenu
+                            person={u}
+                            items={[
+                              { label: 'View profile', onClick: () => nav(`/employee/${uid(u)}`) },
+                              canWrite && { label: 'Edit details', onClick: () => setEditEngineer(u) },
+                              // fullAdmin && { label: 'Show password', onClick: () => setPwUser(u) },
+                              canWrite && { label: u.active ? 'Deactivate' : 'Activate', onClick: () => toggleActive(u, 'Engineer') },
+                              (role === 'admin' || isBU) && { label: 'Delete', danger: true, onClick: () => removeUser(u, 'Engineer') },
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -637,6 +675,144 @@ export default function PeoplePage() {
   );
 }
 
+
+function RowMenu({ person, items }) {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+  const list = items.filter(Boolean);
+
+  const place = () => {
+    const b = btnRef.current && btnRef.current.getBoundingClientRect();
+    const m = menuRef.current && menuRef.current.getBoundingClientRect();
+    if (!b) return;
+    const w = (m && m.width) || 260;
+    const h = (m && m.height) || 240;
+    const below = b.bottom + 6 + h <= window.innerHeight - 8;
+    setPos({
+      top: below ? b.bottom + 6 : Math.max(8, b.top - h - 6),
+      left: Math.min(Math.max(8, b.right - w), window.innerWidth - w - 8),
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (open) place();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => {
+      if (menuRef.current?.contains(e.target) || btnRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    };
+    const onMove = () => setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onMove);
+    window.addEventListener('scroll', onMove, true);
+    requestAnimationFrame(() => menuRef.current?.querySelector('button')?.focus());
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onMove);
+      window.removeEventListener('scroll', onMove, true);
+    };
+  }, [open]);
+
+  const run = (fn) => {
+    setOpen(false);
+    fn();
+  };
+
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(person.email || '');
+      toast('Email copied');
+    } catch (e) {
+      /* clipboard blocked: the address is still visible to copy by hand */
+    }
+  };
+
+  const onMenuKey = (e) => {
+    if (!['ArrowDown', 'ArrowUp'].includes(e.key)) return;
+    e.preventDefault();
+    const btns = [...menuRef.current.querySelectorAll('button')];
+    const i = btns.indexOf(document.activeElement);
+    const next = e.key === 'ArrowDown' ? (i + 1) % btns.length : (i - 1 + btns.length) % btns.length;
+    btns[next]?.focus();
+  };
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className="row-menu-trigger"
+        aria-label={`Actions for ${person.name}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="5" r="1.8" fill="currentColor" />
+          <circle cx="12" cy="12" r="1.8" fill="currentColor" />
+          <circle cx="12" cy="19" r="1.8" fill="currentColor" />
+        </svg>
+      </button>
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="row-menu"
+            role="menu"
+            onKeyDown={onMenuKey}
+            onClick={(e) => e.stopPropagation()}
+            style={{ top: pos ? pos.top : -9999, left: pos ? pos.left : -9999 }}
+          >
+            <div className="row-menu-head">
+              <div className="row-menu-name">{person.name}</div>
+              {person.employeeCode ? <div className="row-menu-sub">{person.employeeCode}</div> : null}
+              {person.email ? (
+                <div className="row-menu-email">
+                  <a href={`mailto:${person.email}`} title="Send email">{person.email}</a>
+                  <button type="button" className="row-menu-copy" onClick={copyEmail} aria-label="Copy email">
+                    Copy
+                  </button>
+                </div>
+              ) : (
+                <div className="row-menu-sub">No email on file</div>
+              )}
+            </div>
+            {list.map((it) => (
+              <button
+                key={it.label}
+                type="button"
+                role="menuitem"
+                className={`row-menu-item${it.danger ? ' is-danger' : ''}`}
+                onClick={() => run(it.onClick)}
+              >
+                {it.label}
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
+    </>
+  );
+}
+
+
 function RegisterModal({ role, creatorRole, scopeUnits, onClose, onDone }) {
   const isAdmin = creatorRole === 'admin';
   const pickUnit = !!scopeUnits && (role === 'manager' || role === 'employee');
@@ -658,9 +834,9 @@ function RegisterModal({ role, creatorRole, scopeUnits, onClose, onDone }) {
   const { toast, toastError } = useToast();
 
   useEffect(() => {
-    if (role === 'bu') api.listCategories().then((r) => setCategories(r.categories || [])).catch(() => {});
-    if (isAdmin && (role === 'manager' || role === 'employee')) api.listBUs().then((r) => setBus(r.bus || [])).catch(() => {});
-    if (role === 'employee') api.listManagers().then((r) => setManagers(r.managers || [])).catch(() => {});
+    if (role === 'bu') api.listCategories().then((r) => setCategories(r.categories || [])).catch(() => { });
+    if (isAdmin && (role === 'manager' || role === 'employee')) api.listBUs().then((r) => setBus(r.bus || [])).catch(() => { });
+    if (role === 'employee') api.listManagers().then((r) => setManagers(r.managers || [])).catch(() => { });
   }, [role, isAdmin]);
 
   const submit = async () => {
@@ -1165,7 +1341,7 @@ function ManageBUModal({ unit, onClose, onChanged }) {
   };
 
   useEffect(() => {
-    api.listBUHeads().then((r) => setPeople(r.heads || [])).catch(() => {});
+    api.listBUHeads().then((r) => setPeople(r.heads || [])).catch(() => { });
   }, []);
 
   const add = async () => {

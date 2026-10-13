@@ -15,8 +15,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || 'You have a new notification.',
-      icon: '/logo.png',
-      badge: '/logo.png',
+      icon: '/ls-icon.png',
+      badge: '/ls-icon.png',
       data: { url: data.url || '/' },
       tag: data.notificationId ? String(data.notificationId) : data.type || 'leadsoc-notification',
       renotify: true,
