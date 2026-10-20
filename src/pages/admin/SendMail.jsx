@@ -7,7 +7,7 @@ const GROUPS = [
   ['all', 'All'],
   ['bus', "BU's"],
   ['trainers', 'Trainers'],
-  ['ctos', 'CTOs'],
+  ['ctos', 'Management'],
   ['engineers', 'Engineers'],
 ];
 
@@ -27,7 +27,7 @@ function CampaignModal({ id, onClose }) {
   const [c, setC] = useState(null);
   useEffect(() => {
     let alive = true;
-    const load = () => api.mailCampaign(id).then((r) => alive && setC(r.campaign)).catch(() => {});
+    const load = () => api.mailCampaign(id).then((r) => alive && setC(r.campaign)).catch(() => { });
     load();
     const t = setInterval(load, 3000);
     return () => {
@@ -265,7 +265,7 @@ export default function SendMail() {
   const [openId, setOpenId] = useState(null);
   const bodyRef = useRef(null);
 
-  const loadCampaigns = () => api.mailCampaigns().then((r) => setCampaigns(r.campaigns || [])).catch(() => {});
+  const loadCampaigns = () => api.mailCampaigns().then((r) => setCampaigns(r.campaigns || [])).catch(() => { });
 
   useEffect(() => {
     api.mailConfig().then(setConfig).catch((e) => toastError(e));
@@ -285,7 +285,8 @@ export default function SendMail() {
       .then((r) => {
         const list = r.recipients || [];
         setPeople(list);
-        setSelected(new Set(list.filter((p) => p.canReceive).map((p) => p.id)));
+        // setSelected(new Set(list.filter((p) => p.canReceive).map((p) => p.id)));
+        setSelected(new Set());
       })
       .catch((e) => {
         toastError(e);
@@ -373,10 +374,12 @@ export default function SendMail() {
     <>
       <div className="page-head">
         <h1>Send mail</h1>
-        <p>Send a personalised email to BUs, trainers, CTOs, engineers or selected people.</p>
+        <p>Send a personalised email to BUs, trainers, Management, engineers or selected people.</p>
       </div>
 
-      {config && (
+      {/* {config && (
+        <MailSettings */}
+      {config && config.canEditServer && (
         <MailSettings
           key={`${config.server?.host || ''}-${config.account?.smtpUser || ''}-${config.configured}`}
           config={config}
@@ -443,6 +446,19 @@ export default function SendMail() {
             <label>From</label>
             <input className="input" readOnly value={config ? `${config.from.name} <${config.sendsAs}>` : ''} />
             {config?.note && <div className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>{config.note}</div>}
+          </div>
+          <div className="field">
+            <label>Reply-To</label>
+            <input
+              className="input"
+              readOnly
+              tabIndex={-1}
+              value={config?.from?.email || ''}
+              style={{ background: '#f4f6fb', color: 'var(--muted)', cursor: 'not-allowed' }}
+            />
+            <div className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>
+              Replies to this mail will come to your email.
+            </div>
           </div>
           <div className="field">
             <label>Subject</label>

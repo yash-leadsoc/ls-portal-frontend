@@ -216,6 +216,13 @@ export const api = {
   mailSend: (data) => post('/mail/send', data),
   mailCampaigns: () => get('/mail/campaigns'),
   mailCampaign: (id) => get(`/mail/campaigns/${id}`),
+  automationStatus: () => get('/automation'),
+  automationSave: (data) => put('/automation', data),
+  automationPreview: (kind) => post('/automation/weekly/preview', { kind }),
+  automationTest: () => post('/automation/weekly/test', {}),
+  automationRunWeekly: () => post('/automation/weekly/run', {}),
+  automationRunInactivity: () => post('/automation/inactivity/run', {}),
+  automationLogs: (query = '') => get(`/automation/logs${query ? `?${query}` : ''}`),
 
   listDomains: () => get('/domains'),
   assignUserDomains: (id, domainIds) => patch(`/users/${id}/domains`, { domainIds }),

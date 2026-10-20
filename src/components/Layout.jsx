@@ -26,6 +26,7 @@ const NAV = {
     { to: '/interviews', label: 'Interviews', icon: '🎤' },
     { to: '/bench', label: 'Bench Tracker', icon: '🪑' },
     { to: '/mail', label: 'Send mail', icon: '✉️' },
+    { to: '/automation', label: 'Email automation', icon: '⏰' },
     { to: '/insights', label: 'Insights', icon: '📈' },
     { to: '/recycle-bin', label: 'Recycle Bin', icon: '🗑️' },
     { to: '/account', label: 'Settings', icon: '⚙️' },
@@ -96,7 +97,7 @@ export default function Layout({ children }) {
   let items = NAV[user.role] || [];
   if (user.role === 'bu') items = applyMenuConfig(items, user.menuConfig);
   if (user.role === 'cto') items = filterMgmt(items, user.permissions || []);
-  if (user.subAdmin) items = items.filter((i) => i.to !== '/insights' && i.to !== '/logs');
+  if (user.subAdmin) items = items.filter((i) => i.to !== '/insights' && i.to !== '/logs' && i.to !== '/automation');
 
   const [openGroups, setOpenGroups] = useState(() => {
     const init = {};
