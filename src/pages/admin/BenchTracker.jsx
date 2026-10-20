@@ -54,6 +54,7 @@ function RecordModal({ id, statuses, bus, onClose, onSaved }) {
     setRec(r);
     setForm({
       name: r.name, buCode: r.buCode, businessUnit: r.businessUnit || '', status: r.status, clientName: r.clientName || '',
+      email: r.email || '',
       benchStart: iso(r.benchStart), source: r.source || '', doj: iso(r.doj), expYears: r.expYears ?? '', skill: r.skill || '',
       buOwner: r.buOwner || '', interviewRejects: r.interviewRejects || '', interviewRejectCount: r.interviewRejectCount || 0,
       screenRejects: r.screenRejects || '', screenRejectCount: r.screenRejectCount || 0,
@@ -139,6 +140,10 @@ function RecordModal({ id, statuses, bus, onClose, onSaved }) {
                   <option value="">— Select —</option>
                   {bus.map((b) => <option key={b.id || b._id} value={b.id || b._id}>{b.name}</option>)}
                 </select>
+              </div>
+              <div className="field" style={{ margin: 0 }}>
+                <label>LS Email</label>
+                <input {...f('email', { type: 'email' })} />
               </div>
               <div className="field" style={{ margin: 0 }}><label>Client name</label><input {...f('clientName')} /></div>
               <div className="field" style={{ margin: 0 }}><label>Bench start date</label><input {...f('benchStart', { type: 'date', max: todayIso() })} /></div>
@@ -461,7 +466,7 @@ export default function BenchTracker() {
 
   useEffect(() => {
     load();
-    api.listBUs().then((r) => setBus(r.bus || [])).catch(() => {});
+    api.listBUs().then((r) => setBus(r.bus || [])).catch(() => { });
   }, []);
 
   const replace = (rec) => setRecords((list) => list.map((r) => (r.id === rec.id ? { ...r, ...rec, comments: rec.comments.slice(0, 12) } : r)));
@@ -581,7 +586,7 @@ export default function BenchTracker() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ textAlign: 'left' }}>
-                  <th style={th}>EMP ID</th><th style={th}>Candidate</th><th style={th}>BU</th><th style={th}>Status</th>
+                  <th style={th}>EMP ID</th><th style={th}>Candidate</th><th style={th}>BU</th><th style={th}>LS Email</th><th style={th}>Status</th>
                   <th style={th}>Client</th><th style={th}>Bench start</th><th style={th}>Ageing</th><th style={th}>Exp</th>
                   <th style={th}>Skill</th><th style={th}>Owner</th><th style={th}>Int. rej.</th><th style={th}>Scr. rej.</th>
                   <th style={th}>Location</th><th style={th}>Sales</th>
@@ -602,6 +607,7 @@ export default function BenchTracker() {
                         {r.businessUnitName && <div className="muted" style={{ fontSize: 11 }}>{r.businessUnitName}</div>}
                       </td>
                       <td style={td}>{r.buCode}</td>
+                      <td style={td}>{r.email || '—'}</td>
                       <td style={td}><Badge kind={STATUS_KIND[r.status] || 'neutral'}>{r.status}</Badge></td>
                       <td style={td}>{r.clientName || '—'}</td>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>{fmt(r.benchStart)}</td>

@@ -121,7 +121,8 @@ export default function Layout({ children }) {
         </div>
         
 
-        <nav>
+        {/* <nav> */}
+        <nav className="sidebar-nav">
           {items.map((i, idx) =>
             i.group ? (
               <div key={`g-${idx}`}>

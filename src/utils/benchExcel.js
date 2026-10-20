@@ -28,7 +28,8 @@ const FIELD_HEADERS = [
   ['screenRejectCount', ['noofscrrejects', 'noofscreenrejects']],
   ['locationPreference', ['locationpreference']],
   ['salesEffort', ['salesefforts', 'salesefforts', 'salesefort', 'saleseffort']],
-  ['email', ['email', 'emailid']],
+  // ['email', ['email', 'emailid']],
+ ['email', ['email', 'emailid', 'lsemail', 'leadsocemail']],
 ];
 
 function parseHeaderDate(header) {

@@ -114,6 +114,11 @@ export default function BenchReports() {
             <Kpi label="Open" value={k.open} />
             <Kpi label="Under training" value={k.underTraining} />
             <Kpi label="Pending onboarding (PO)" value={k.pendingOnboarding} tone="good" />
+            <Kpi
+              label="Deployed"
+              value={k.deployed}
+              icon="✓"
+            />
             <Kpi label="Yet to offboard (YTO)" value={k.yetToOffboard} />
             <Kpi label="Resigned / pending exit" value={k.exits} tone={k.exits ? 'warn' : undefined} />
             <Kpi label="Above 90 days" value={k.over90} tone={k.over90 ? 'bad' : 'good'} />
