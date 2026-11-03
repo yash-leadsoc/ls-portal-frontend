@@ -80,8 +80,8 @@ export function trackUsage(path, ms, view) {
       headers: headers(),
       body: JSON.stringify({ path, ms: Math.round(ms || 0), view: !!view }),
       keepalive: true,
-    }).catch(() => {});
-  } catch (e) {}
+    }).catch(() => { });
+  } catch (e) { }
 }
 
 export const api = {
@@ -208,7 +208,7 @@ export const api = {
   mailSaveServer: (data) => put('/mail/server', data),
   mailSaveAccount: (data) => put('/mail/account', data),
   mailRemoveAccount: () => del('/mail/account'),
-    mailUseForSystem: () => put('/mail/system-sender', {}),
+  mailUseForSystem: () => put('/mail/system-sender', {}),
   forgotPassword: (identifier) => post('/auth/forgot-password', { identifier }),
   resetPassword: (identifier, otp, newPassword) => post('/auth/reset-password', { identifier, otp, newPassword }),
   mailRecipients: (group) => get(`/mail/recipients?group=${group}`),
@@ -416,8 +416,131 @@ export const api = {
   listTrash: (entity) => get(`/trash${entity ? `?entity=${encodeURIComponent(entity)}` : ''}`),
   restoreTrash: (id) => post(`/trash/${id}/restore`, {}),
   purgeTrash: (id) => del(`/trash/${id}`),
+
+
+  // ================= EXAMINATION MODULE =================
+
+  // Public exam APIs
+  getPublicExams: () => get('/exam/public/exams'),
+
+  getPublicExam: (id) =>
+    get(`/exam/public/exams/${id}`),
+
+  registerExamCandidate: (payload) =>
+    post('/exam/public/register', payload),
+
+  getExamInstructions: (attemptId) =>
+    get(`/exam/attempts/${attemptId}/instructions`),
+
+  startExamAttempt: (attemptId) =>
+    post(`/exam/attempts/${attemptId}/start`, {}),
+
+  getExamQuestionPaper: (attemptId) =>
+    get(`/exam/attempts/${attemptId}/paper`),
+
+  saveExamAnswer: (attemptId, payload) =>
+    put(`/exam/attempts/${attemptId}/answers`, payload),
+
+  getExamAttemptStatus: (attemptId) =>
+    get(`/exam/attempts/${attemptId}/status`),
+
+  submitExamAttempt: (attemptId) =>
+    post(`/exam/attempts/${attemptId}/submit`, {}),
+
+  // Admin exam APIs
+  adminExamDashboard: (params = {}) =>
+    get(`/exam/admin/dashboard${qs(params)}`),
+
+  adminGetExams: (params = {}) =>
+    get(`/exam/admin/exams${qs(params)}`),
+
+  adminCreateExam: (payload) =>
+    post('/exam/admin/exams', payload),
+
+  adminUpdateExam: (id, payload) =>
+    put(`/exam/admin/exams/${id}`, payload),
+
+  adminDeleteExam: (id) =>
+    del(`/exam/admin/exams/${id}`),
+
+  adminChangeExamStatus: (id, status) =>
+    patch(`/exam/admin/exams/${id}/status`, { status }),
+
+  // Sets
+  adminGetExamSets: (examId) =>
+    get(`/exam/admin/exams/${examId}/sets`),
+
+  adminCreateExamSet: (examId, payload) =>
+    post(`/exam/admin/exams/${examId}/sets`, payload),
+
+  adminUpdateExamSet: (id, payload) =>
+    put(`/exam/admin/sets/${id}`, payload),
+
+  adminDeleteExamSet: (id) =>
+    del(`/exam/admin/sets/${id}`),
+
+  // Questions
+  adminGetQuestions: (setId) =>
+    get(`/exam/admin/sets/${setId}/questions`),
+
+  adminCreateQuestion: (setId, payload) =>
+    post(`/exam/admin/sets/${setId}/questions`, payload),
+
+  adminUpdateQuestion: (id, payload) =>
+    put(`/exam/admin/questions/${id}`, payload),
+
+  adminDeleteQuestion: (id) =>
+    del(`/exam/admin/questions/${id}`),
+
+  // Candidates and results
+  adminGetCandidates: (params = {}) =>
+    get(`/exam/admin/candidates${qs(params)}`),
+
+  adminGetResults: (params = {}) =>
+    get(`/exam/results${qs(params)}`),
+
+  adminGetCandidateReport: (attemptId) =>
+    get(`/exam/results/${attemptId}`),
+
+  adminEvaluateAnswer: (attemptId, questionId, payload) =>
+    patch(
+      `/exam/results/${attemptId}/answers/${questionId}`,
+      payload
+    ),
+
+  adminRecalculateResult: (attemptId) =>
+    post(`/exam/results/${attemptId}/recalculate`, {}),
+
+  adminExportCandidates: (params = {}) =>
+    downloadExamFile(`/exam/admin/candidates/export${qs(params)}`),
+
+  adminExportResults: (params = {}) =>
+    downloadExamFile(`/exam/results/export${qs(params)}`),
+
+
 };
 
 export function uid(o) {
   return (o && (o.id || o._id)) ? (o.id || o._id).toString() : '';
+}
+
+
+async function downloadExamFile(path) {
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: headers(false),
+  });
+
+  if (!res.ok) {
+    throw new Error('Export failed');
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `exam-report-${Date.now()}`;
+  a.click();
+
+  URL.revokeObjectURL(url);
 }
