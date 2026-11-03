@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Icon, ToastProvider } from './components/ExamUI';
 import './exam.css';
+import './exam-admin.css';
+import { useNavigate } from 'react-router-dom';
 
 const NAV = [
   { to: '/exam/admin', label: 'Overview', icon: 'home', end: true },
@@ -11,10 +13,19 @@ const NAV = [
   { to: '/exam/admin/evaluation', label: 'Evaluation', icon: 'checkSquare' },
 ];
 
+
+
+const handleLogout = () => {
+  localStorage.removeItem('exam_admin_token');
+  localStorage.removeItem('exam_admin_user');
+  navigate('/exam/admin/login', { replace: true });
+};
+
 // App.jsx renders <ExamAdminLayout><Routes/></ExamAdminLayout>; also works as a layout route (<Outlet/>).
 export default function ExamAdminLayout({ children }) {
   const [open, setOpen] = useState(false);
   const loc = useLocation();
+  const navigate = useNavigate();
   useEffect(() => setOpen(false), [loc.pathname]);
 
   return (
@@ -34,8 +45,14 @@ export default function ExamAdminLayout({ children }) {
           ))}
           <div className="ex-sidebar__label">Shortcuts</div>
           <NavLink to="/exam" className="ex-navlink"><Icon name="eye" size={18} />Student portal</NavLink>
-          <div className="ex-sidebar__foot">
-            <NavLink to="/" className="ex-navlink"><Icon name="logout" size={18} />Back to LeadSoc</NavLink>
+          {/* <div className="ex-sidebar__foot"> */}
+          {/* <NavLink to="/" className="ex-navlink"><Icon name="logout" size={18} />Back to LeadSoc</NavLink> */}
+          {/* </div> */}
+          <div className="exam-admin-logout">
+            <button type="button" onClick={handleLogout}>
+              <Icon name="logout" size={18} />
+              <span>Logout</span>
+            </button>
           </div>
         </aside>
         <main className="ex-admin__main">

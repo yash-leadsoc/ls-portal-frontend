@@ -172,3 +172,33 @@
   .exam-admin-user span:not(.exam-admin-avatar) { display: none; }
   .exam-admin-content { padding: 22px 15px 35px; }
 }
+
+
+.exam-admin-logout {
+  margin-top: auto;
+  padding: 20px 8px 5px;
+  border-top: 1px solid #ffffff18;
+}
+
+.exam-admin-logout button {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #ffffff;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.exam-admin-logout button:hover {
+  color: #fff;
+  background: #e548481c;
+  border-color: #e5484830;
+}

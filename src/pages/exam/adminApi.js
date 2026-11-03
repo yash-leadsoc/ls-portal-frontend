@@ -1,21 +1,45 @@
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const token = () => localStorage.getItem('ls_token');
+const token = () =>localStorage.getItem('exam_admin_token');
 
 // path is relative to /api/exam/, e.g. 'admin/exams' or 'results'
-export async function adminRequest(path, { method = 'GET', body } = {}) {
-  const t = token();
-  let res;
-  try {
-    res = await fetch(`${API}/exam/${path}`, {
-      method,
-      headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-  } catch {
-    throw new Error('Cannot reach the server. Check your connection.');
+// export async function adminRequest(path, { method = 'GET', body } = {}) {
+//   const t = token();
+//   let res;
+//   try {
+//     res = await fetch(`${API}/exam/${path}`, {
+//       method,
+//       headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+//       body: body ? JSON.stringify(body) : undefined,
+//     });
+//   } catch {
+//     throw new Error('Cannot reach the server. Check your connection.');
+//   }
+//   const data = await res.json().catch(() => ({}));
+//   if (!res.ok) throw Object.assign(new Error(data.message || 'Request failed'), { status: res.status });
+//   return data;
+// }
+
+export async function adminRequest(
+  path,
+  { method = 'GET', body } = {}
+) {
+  const token = localStorage.getItem('exam_admin_token');
+
+  const response = await fetch(`${API}/exam/${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Request failed');
   }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw Object.assign(new Error(data.message || 'Request failed'), { status: res.status });
+
   return data;
 }
 

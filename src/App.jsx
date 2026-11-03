@@ -350,6 +350,8 @@ const RecycleBin = lazy(() => import('./pages/shared/RecycleBin'));
 const BenchTracker = lazy(() => import('./pages/admin/BenchTracker'));
 const SendMail = lazy(() => import('./pages/admin/SendMail'));
 const MailAutomation = lazy(() => import('./pages/admin/MailAutomation'));
+import ExamAdminLogin from './pages/exam/ExamAdminLogin';
+import ExamAdminLayout from './pages/exam/ExamAdminLayout';
 
 
 // Student exam pages
@@ -360,9 +362,10 @@ import ExamInterface from './pages/exam/ExamInterface';
 import ExamSubmitted from './pages/exam/ExamSubmitted';
 
 // Exam admin pages
-const ExamAdminLayout = lazy(
-  () => import('./pages/exam/ExamAdminLayout')
-);
+// const ExamAdminLayout = lazy(
+//   () => import('./pages/exam/ExamAdminLayout')
+// );
+
 const ExamAdminDashboard = lazy(() => import('./pages/exam/ExamAdminDashboard'));
 const ExamManagement = lazy(() => import('./pages/exam/ExamManagement'));
 const ExamEditor = lazy(() => import('./pages/exam/ExamEditor'));
@@ -509,43 +512,88 @@ function StudentExamRoutes() {
 }
 
 // Protected exam administration routes
+// function ExamAdminGuard() {
+//   const { user, loading } = useAuth();
+
+//   if (loading) return <LoadingPage />;
+//   if (!user) return <Login />;
+
+//   if (user.role !== 'admin' || user.subAdmin) {
+//     return <Navigate to="/" replace />;
+//   }
+
+//   return (
+//   <Suspense fallback={<LoadingPage />}>
+//     <ExamAdminLayout>
+//       <Routes>
+//         <Route index element={<ExamAdminDashboard />} />
+//         <Route path="exams" element={<ExamManagement />} />
+//         <Route path="exams/:examId" element={<ExamEditor />} />
+//         <Route
+//           path="exams/:examId/sets"
+//           element={<ExamSetManagement />}
+//         />
+//         <Route
+//           path="exams/:examId/sets/:setId/questions"
+//           element={<QuestionManagement />}
+//         />
+//         <Route path="candidates" element={<CandidateManagement />} />
+//         <Route path="results" element={<ExamResults />} />
+//         <Route path="results/:attemptId" element={<CandidateReport />} />
+//         <Route path="evaluation" element={<ExamEvaluation />} />
+//         <Route
+//           path="*"
+//           element={<Navigate to="/exam/admin" replace />}
+//         />
+//       </Routes>
+//     </ExamAdminLayout>
+//   </Suspense>
+// );
+// }
+
 function ExamAdminGuard() {
-  const { user, loading } = useAuth();
+  const token = localStorage.getItem('exam_admin_token');
 
-  if (loading) return <LoadingPage />;
-  if (!user) return <Login />;
-
-  if (user.role !== 'admin' || user.subAdmin) {
-    return <Navigate to="/" replace />;
+  if (!token) {
+    return <Navigate to="/exam/admin/login" replace />;
   }
 
   return (
-  <Suspense fallback={<LoadingPage />}>
-    <ExamAdminLayout>
-      <Routes>
-        <Route index element={<ExamAdminDashboard />} />
-        <Route path="exams" element={<ExamManagement />} />
-        <Route path="exams/:examId" element={<ExamEditor />} />
-        <Route
-          path="exams/:examId/sets"
-          element={<ExamSetManagement />}
-        />
-        <Route
-          path="exams/:examId/sets/:setId/questions"
-          element={<QuestionManagement />}
-        />
-        <Route path="candidates" element={<CandidateManagement />} />
-        <Route path="results" element={<ExamResults />} />
-        <Route path="results/:attemptId" element={<CandidateReport />} />
-        <Route path="evaluation" element={<ExamEvaluation />} />
-        <Route
-          path="*"
-          element={<Navigate to="/exam/admin" replace />}
-        />
-      </Routes>
-    </ExamAdminLayout>
-  </Suspense>
-);
+    <Suspense fallback={<LoadingPage />}>
+      <ExamAdminLayout>
+        <Routes>
+          <Route index element={<ExamAdminDashboard />} />
+
+          <Route path="exams" element={<ExamManagement />} />
+
+          <Route path="exams/:examId" element={<ExamEditor />} />
+
+          <Route
+            path="exams/:examId/sets"
+            element={<ExamSetManagement />}
+          />
+
+          <Route
+            path="exams/:examId/sets/:setId/questions"
+            element={<QuestionManagement />}
+          />
+
+          <Route path="candidates" element={<CandidateManagement />} />
+
+          <Route path="results" element={<ExamResults />} />
+
+          <Route path="results/:attemptId" element={<CandidateReport />} />
+
+          <Route path="evaluation" element={<ExamEvaluation />} />
+
+          <Route
+            path="*"
+            element={<Navigate to="/exam/admin" replace />}
+          />
+        </Routes>
+      </ExamAdminLayout>
+    </Suspense>
+  );
 }
 
 // Existing authenticated portal routes
@@ -597,27 +645,38 @@ export default function App() {
   if (loading) return <LoadingPage />;
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Admin exam portal - protected inside its guard */}
-        <Route path="/exam/admin/*" element={<ExamAdminGuard />} />
+  <BrowserRouter>
+    <Routes>
 
-        {/* Public student exam portal */}
-        <Route
-          path="/exam/*"
-          element={
-            <Suspense fallback={<LoadingPage />}>
-              <StudentExamRoutes />
-            </Suspense>
-          }
-        />
+      {/* Independent Exam Admin Login */}
+      <Route
+        path="/exam/admin/login"
+        element={<ExamAdminLogin />}
+      />
 
-        {/* Existing LeadSoc authenticated portal */}
-        <Route
-          path="/*"
-          element={<AuthenticatedPortal user={user} />}
-        />
-      </Routes>
-    </BrowserRouter>
-  );
+      {/* Independent Exam Admin Dashboard */}
+      <Route
+        path="/exam/admin/*"
+        element={<ExamAdminGuard />}
+      />
+
+      {/* Public Student Exam Portal */}
+      <Route
+        path="/exam/*"
+        element={
+          <Suspense fallback={<LoadingPage />}>
+            <StudentExamRoutes />
+          </Suspense>
+        }
+      />
+
+      {/* Existing LeadSoc Portal */}
+      <Route
+        path="/*"
+        element={<AuthenticatedPortal user={user} />}
+      />
+
+    </Routes>
+  </BrowserRouter>
+);
 }
