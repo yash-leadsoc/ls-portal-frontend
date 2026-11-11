@@ -114,7 +114,7 @@ async function loadVision() {
   if (!visionPromise) {
     visionPromise = (async () => {
       const mod = await import(/* @vite-ignore */ `${BASE}/mediapipe/vision_bundle.mjs`);
-      const fileset = await mod.FilesetResolver.forVisionTasks(`${BASE}/wasm`);
+      const fileset = await mod.FilesetResolver.forVisionTasks(`${BASE}/mediapipe/wasm`);
       return { mod, fileset };
     })().catch((e) => { visionPromise = null; throw e; });
   }

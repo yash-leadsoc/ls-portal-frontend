@@ -64,7 +64,7 @@ export default function ExamRegistration() {
             <form className="ex-form" onSubmit={submit}>
               <Field label="Full name"><div className="ex-input-wrap"><Icon name="users" size={17} /><input className="ex-input" name="name" autoComplete="name" required minLength={2} maxLength={100} value={form.name} onChange={change} placeholder="As it should appear on your result" /></div></Field>
               <Field label="Email address"><div className="ex-input-wrap"><Icon name="mail" size={17} /><input className="ex-input" name="email" type="email" autoComplete="email" required value={form.email} onChange={change} placeholder="you@example.com" /></div></Field>
-              <Field label="Phone number" hint="Include country code if outside India, e.g. +91 98765 43210"><div className="ex-input-wrap"><Icon name="phone" size={17} /><input className="ex-input" name="phone" type="tel" autoComplete="tel" required pattern="[0-9()+ -]{8,20}" title="8–20 digits; spaces, +, - and brackets allowed" value={form.phone} onChange={change} placeholder="+91 98765 43210" /></div></Field>
+              <Field label="Phone number" hint="Include country code if outside India, e.g. +91 98765 43210"><div className="ex-input-wrap"><Icon name="phone" size={17} /><input className="ex-input" name="phone" type="tel" autoComplete="tel" required pattern="\\+?[0-9]{8,15}"title="8–20 digits; spaces, +, - and brackets allowed" value={form.phone} onChange={change} placeholder="+91 98765 43210" /></div></Field>
               <Alert>{error}</Alert>
               <Button type="submit" variant="primary" size="lg" busy={busy} block disabled={!exam}>Continue to instructions</Button>
             </form>
