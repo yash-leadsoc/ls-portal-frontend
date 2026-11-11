@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminRequest } from './adminApi';
 import ExamForm from './components/ExamForm';
-import { Alert, Badge, Button, ConfirmDialog, Empty, Icon, Loading, Modal, PageHeader, StatusBadge, fmtDate, useToast } from './components/ExamUI';
+import { Alert, Badge, Button, ConfirmDialog, Empty, Field, Icon, Loading, Modal, PageHeader, StatusBadge, fmtDate, fromLocalInput, toLocalInput, useToast } from './components/ExamUI';
 
 const FILTERS = ['All', 'Live', 'Scheduled', 'Draft', 'Paused', 'Completed', 'Archived'];
 
@@ -15,6 +15,24 @@ export default function ExamManagement() {
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [del, setDel] = useState(null);
+
+  const [rl, setRl] = useState(null);
+
+  const endedWindow = (e) => !!e.endsAt && new Date(e.endsAt) <= new Date();
+  const goLive = (e) => (e.status === 'Completed' || endedWindow(e)
+    ? setRl({ exam: e, mode: 'until', until: toLocalInput(new Date(Date.now() + 2 * 3600 * 1000).toISOString()), busy: false, err: '' })
+    : setStatus(e, 'Live'));
+
+  async function confirmRelive() {
+    setRl((r) => ({ ...r, busy: true, err: '' }));
+    try {
+      const body = rl.mode === 'open' ? { status: 'Live', noEndTime: true } : { status: 'Live', endsAt: fromLocalInput(rl.until) };
+      const out = await adminRequest(`admin/exams/${rl.exam._id}/status`, { method: 'PATCH', body });
+      toast(out.note || `“${rl.exam.name}” is Live again`);
+      setRl(null);
+      load();
+    } catch (x) { setRl((r) => ({ ...r, busy: false, err: x.message })); }
+  }
 
   const load = useCallback(() => adminRequest('admin/exams').then(setExams).catch((e) => setError(e.message)), []);
   useEffect(() => { load(); }, [load]);
@@ -32,6 +50,8 @@ export default function ExamManagement() {
     } catch (e) { toast(e.message, 'error'); } finally { setBusy(false); }
   }
   async function setStatus(e, status) {
+    const out = await adminRequest(`admin/exams/${e._id}/status`, { method: 'PATCH', body: { status } });
+    toast(out?.note || `“${e.name}” is now ${status}`);
     try { await adminRequest(`admin/exams/${e._id}/status`, { method: 'PATCH', body: { status } }); toast(`“${e.name}” is now ${status}`); load(); }
     catch (x) { toast(x.message, 'error'); }
   }
@@ -71,7 +91,7 @@ export default function ExamManagement() {
                 <td><div className="ex-actions">
                   {e.status === 'Live'
                     ? <Button size="sm" variant="secondary" icon="pause" onClick={() => setStatus(e, 'Paused')}>Pause</Button>
-                    : ['Draft', 'Scheduled', 'Paused'].includes(e.status) && <Button size="sm" variant="success" icon="play" onClick={() => setStatus(e, 'Live')}>Go live</Button>}
+                    : ['Draft', 'Scheduled', 'Paused', 'Completed'].includes(e.status) && <Button size="sm" variant="success" icon="play" onClick={() => goLive(e)}>{e.status === 'Completed' ? 'Re-live' : 'Go live'}</Button>}
                   <Link to={`/exam/admin/exams/${e._id}/sets`}><Button size="sm" variant="secondary" icon="layers">Sets</Button></Link>
                   <Link to={`/exam/admin/exams/${e._id}`}><Button size="sm" variant="ghost" className="ex-btn--icon" icon="edit" aria-label="Edit" /></Link>
                   <Button size="sm" variant="ghost" className="ex-btn--icon" icon="trash" aria-label="Delete" onClick={() => setDel(e)} />
@@ -84,6 +104,21 @@ export default function ExamManagement() {
       <Modal open={creating} wide title="Create examination" onClose={() => setCreating(false)} dismissible={!busy}>
         <ExamForm onSubmit={create} onCancel={() => setCreating(false)} busy={busy} submitLabel="Create exam" />
       </Modal>
+
+      <Modal open={!!rl} title={`Re-open “${rl?.exam?.name || ''}”`} onClose={() => !rl?.busy && setRl(null)}
+        footer={<><Button variant="secondary" disabled={rl?.busy} onClick={() => setRl(null)}>Cancel</Button>
+          <Button variant="success" icon="play" busy={rl?.busy} disabled={rl?.mode === 'until' && !rl?.until} onClick={confirmRelive}>Make Live</Button></>}>
+        {rl && (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <p className="ex-small">Its end time was <b>{rl.exam.endsAt ? fmtDate(rl.exam.endsAt) : '—'}</b>. Choose how long it should stay open:</p>
+            <label className="ex-small"><input type="radio" checked={rl.mode === 'until'} onChange={() => setRl({ ...rl, mode: 'until' })} /> <b>Open until a new end time</b></label>
+            {rl.mode === 'until' && <Field label="New end time"><input className="ex-input" type="datetime-local" value={rl.until} onChange={(e) => setRl({ ...rl, until: e.target.value })} /></Field>}
+            <label className="ex-small"><input type="radio" checked={rl.mode === 'open'} onChange={() => setRl({ ...rl, mode: 'open' })} /> <b>No end time</b> — stays Live until you pause or complete it</label>
+            <Alert>{rl.err}</Alert>
+          </div>
+        )}
+      </Modal>
+
       <ConfirmDialog open={!!del} danger title="Delete this exam?" confirmLabel="Delete" busy={busy} onCancel={() => setDel(null)} onConfirm={remove}>
         “{del?.name}”, its question sets and candidate registrations will be removed. Exams that already have attempts cannot be deleted — archive them instead.
       </ConfirmDialog>

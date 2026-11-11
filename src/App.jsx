@@ -373,6 +373,8 @@ const ExamSetManagement = lazy(() => import('./pages/exam/ExamSetManagement'));
 const QuestionManagement = lazy(() => import('./pages/exam/QuestionManagement'));
 const CandidateManagement = lazy(() => import('./pages/exam/CandidateManagement'));
 const ExamResults = lazy(() => import('./pages/exam/ExamResults'));
+const ProctoringDashboard = lazy(() => import('./pages/exam/ProctoringDashboard'));
+const ProctoringCandidateDetails = lazy(() => import('./pages/exam/ProctoringCandidateDetails'));
 const CandidateReport = lazy(() => import('./pages/exam/CandidateReport'));
 const ExamEvaluation = lazy(() => import('./pages/exam/ExamEvaluation'));
 
@@ -585,6 +587,10 @@ function ExamAdminGuard() {
           <Route path="results/:attemptId" element={<CandidateReport />} />
 
           <Route path="evaluation" element={<ExamEvaluation />} />
+
+          <Route path="proctoring" element={<ProctoringDashboard />} />
+
+          <Route path="proctoring/:attemptId" element={<ProctoringCandidateDetails />} />
 
           <Route
             path="*"

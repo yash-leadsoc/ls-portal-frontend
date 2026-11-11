@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { examApi } from './examApi';
 import StudentShell, { Stepper } from './components/StudentShell';
 import { Alert, Button, Icon, Loading } from './components/ExamUI';
+import ProctoringGate from './proctoring/ProctoringGate';
 
 export default function ExamInstructions() {
   const { attemptId } = useParams();
@@ -11,6 +12,7 @@ export default function ExamInstructions() {
   const [error, setError] = useState('');
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [aiReady, setAiReady] = useState(false);
 
   useEffect(() => {
     examApi.instructions(attemptId).then((d) => {
@@ -22,6 +24,8 @@ export default function ExamInstructions() {
   async function start() {
     setBusy(true);
     setError('');
+    // Fullscreen must be requested from this click (a user gesture); SPA navigation keeps it.
+    if (ai?.config?.requireFullscreen) { try { await document.documentElement.requestFullscreen?.(); } catch { /* optional */ } }
     try {
       await examApi.start(attemptId);
       nav(`/exam/attempt/${attemptId}`);
@@ -33,6 +37,8 @@ export default function ExamInstructions() {
   }
 
   const resumed = data?.status === 'In Progress';
+  const ai = data?.aiProctoring;
+  const gateNeeded = !!ai?.config?.enabled && !resumed; // a resumed attempt already passed the gate
   const exam = data?.exam;
   const p = data?.proctoring;
 
@@ -69,10 +75,15 @@ export default function ExamInstructions() {
             )}
           </ul>
 
+          {gateNeeded && <ProctoringGate attemptId={attemptId} config={ai.config} session={ai.session} onReady={setAiReady} />}
+          {resumed && ai?.config?.enabled && (
+            <p className="ex-muted ex-small" style={{ marginTop: 12 }}>This exam uses AI-assisted integrity monitoring (analysed on your device; no video is recorded). Your camera may be requested again.</p>
+          )}
+
           <label className="ex-agree"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>I have read and understood the instructions and I am ready to begin.</span></label>
           <div style={{ marginTop: 16 }}><Alert>{error}</Alert></div>
-          <Button variant="accent" size="lg" block style={{ marginTop: 18 }} disabled={!agree} busy={busy} onClick={start}>
+          <Button variant="accent" size="lg" block style={{ marginTop: 18 }} disabled={!agree || (gateNeeded && !aiReady)} busy={busy} onClick={start}>
             <Icon name="play" size={17} /> {resumed ? 'Resume examination' : 'Start examination'}
           </Button>
         </div>

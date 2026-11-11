@@ -6,6 +6,7 @@ const toForm = (e = {}) => ({
   durationMinutes: e.durationMinutes ?? 60, maximumMarks: e.maximumMarks ?? 100, passingMarks: e.passingMarks ?? 40,
   startsAt: toLocalInput(e.startsAt), endsAt: toLocalInput(e.endsAt),
   proctoringEnabled: e.proctoringEnabled ?? true, maxWarnings: e.maxWarnings ?? 3,
+  aiProctoring: { enabled: false, cameraRequired: true, requireFullscreen: false, blockPaste: false, noFaceSeconds: 8, headAwaySeconds: 6, ...(e.aiProctoring || {}) },
   randomizeQuestions: !!e.randomizeQuestions, randomizeOptions: !!e.randomizeOptions,
   aiEvaluation: e.aiEvaluation ?? true, showResultToCandidate: !!e.showResultToCandidate, negativeMarking: !!e.negativeMarking, negativeMarkValue: e.negativeMarkValue ?? 0, allowMultipleAttempts: !!e.allowMultipleAttempts,
 });
@@ -15,6 +16,8 @@ export default function ExamForm({ exam, onSubmit, onCancel, busy, submitLabel =
   const [error, setError] = useState('');
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const flag = (k) => (v) => setF((p) => ({ ...p, [k]: v }));
+  const ai = (k) => (v) => setF((p) => ({ ...p, aiProctoring: { ...p.aiProctoring, [k]: v } }));
+  const aiNum = (k) => (e) => ai(k)(e.target.value);
 
   function submit(e) {
     e.preventDefault();
@@ -26,6 +29,7 @@ export default function ExamForm({ exam, onSubmit, onCancel, busy, submitLabel =
       durationMinutes: Number(f.durationMinutes), maximumMarks: Number(f.maximumMarks), passingMarks: Number(f.passingMarks),
       maxWarnings: Number(f.maxWarnings), negativeMarkValue: Number(f.negativeMarkValue) || 0,
       startsAt: fromLocalInput(f.startsAt), endsAt: fromLocalInput(f.endsAt),
+      aiProctoring: { ...f.aiProctoring, noFaceSeconds: Number(f.aiProctoring.noFaceSeconds), headAwaySeconds: Number(f.aiProctoring.headAwaySeconds) },
     });
   }
 
@@ -59,6 +63,21 @@ export default function ExamForm({ exam, onSubmit, onCancel, busy, submitLabel =
           <Field label="Warnings allowed before auto-submit" hint={`Candidates see warnings 1 to ${f.maxWarnings || 0}; the next time they leave, the exam is submitted automatically.`}>
             <input className="ex-input" type="number" min="0" max="10" style={{ maxWidth: 140 }} value={f.maxWarnings} onChange={set('maxWarnings')} />
           </Field>
+        )}
+        <Switch checked={f.aiProctoring.enabled} onChange={ai('enabled')} title="AI-assisted integrity monitoring"
+          desc="Candidates give consent, then their browser checks (on-device) for face visibility, head direction and window activity. No video is recorded or uploaded. Events are review indicators only — nothing is submitted or ended automatically." />
+        {f.aiProctoring.enabled && (
+          <>
+            <div className="ex-grid-2">
+              <Switch checked={f.aiProctoring.cameraRequired} onChange={ai('cameraRequired')} title="Require webcam" desc="Candidates without a camera must request an accommodation you approve." />
+              <Switch checked={f.aiProctoring.requireFullscreen} onChange={ai('requireFullscreen')} title="Require full screen" desc="Exits are recorded for review (not penalised automatically)." />
+              <Switch checked={f.aiProctoring.blockPaste} onChange={ai('blockPaste')} title="Block paste into answers" desc="Paste attempts are always recorded; this also blocks them." />
+            </div>
+            <div className="ex-grid-2">
+              <Field label="Face missing — seconds before an event" hint="Shorter absences are ignored (3–120)."><input className="ex-input" type="number" min="3" max="120" value={f.aiProctoring.noFaceSeconds} onChange={aiNum('noFaceSeconds')} /></Field>
+              <Field label="Looking away — seconds before an event" hint="Sustained head turn only (2–120)."><input className="ex-input" type="number" min="2" max="120" value={f.aiProctoring.headAwaySeconds} onChange={aiNum('headAwaySeconds')} /></Field>
+            </div>
+          </>
         )}
         <div className="ex-grid-2">
           <Switch checked={f.randomizeQuestions} onChange={flag('randomizeQuestions')} title="Shuffle questions" desc="Each candidate gets a different order." />

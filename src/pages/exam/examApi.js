@@ -43,4 +43,7 @@ export const examApi = {
   violation: (id, body) => request(`/exam/attempts/${id}/violation`, { method: 'POST', body, attempt: true }),
   result: (id) => request(`/exam/attempts/${id}/result`, { attempt: true }),
   submit: (id) => request(`/exam/attempts/${id}/submit`, { method: 'POST', body: {}, attempt: true }),
+  // AI proctoring (metadata only; never frames/video/audio)
+  proctoringSession: (id, body) => request(`/exam/attempts/${id}/proctoring/session`, { method: 'PUT', body, attempt: true }),
+  proctoringEvents: (id, body, opts = {}) => request(`/exam/attempts/${id}/proctoring/events`, { method: 'POST', body, attempt: true, keepalive: !!opts.keepalive }),
 };

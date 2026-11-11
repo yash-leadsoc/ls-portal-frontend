@@ -1,0 +1,41 @@
+/* AI proctoring UI (candidate side + admin) - reuses the exam design tokens */
+.pg-gate { margin-top: 22px; padding: 18px; border: 1px solid var(--ex-line, #e2e8f0); border-radius: 12px; background: var(--ex-surface-2, #f8fafc); display: grid; gap: 12px; }
+.pg-gate h3 { display: flex; gap: 8px; align-items: center; margin: 0; }
+.pg-points { display: grid; gap: 8px; font-size: .88rem; }
+.pg-points div { display: grid; gap: 2px; }
+.pg-points span { color: var(--ex-muted, #64748b); }
+.pg-cam { display: grid; gap: 10px; justify-items: start; }
+.pg-preview { display: none; position: relative; width: 280px; max-width: 100%; border-radius: 10px; overflow: hidden; background: #000; }
+.pg-preview.on { display: block; }
+.pg-preview video { width: 100%; display: block; transform: scaleX(-1); }
+.pg-hint { position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 8px; font-size: .75rem; color: #fff; background: rgba(0,0,0,.55); }
+.pg-link { background: none; border: 0; padding: 0; text-align: left; color: var(--ex-primary, #1d4ed8); text-decoration: underline; cursor: pointer; font-size: .85rem; }
+.pg-acc { display: grid; gap: 8px; } .pg-acc textarea { width: 100%; border: 1px solid var(--ex-line, #cbd5e1); border-radius: 8px; padding: 8px; font: inherit; }
+.pg-self { position: fixed; right: 12px; bottom: 12px; z-index: 40; width: 132px; border-radius: 10px; overflow: hidden; background: #0f172a; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.pg-self video { width: 100%; display: block; transform: scaleX(-1); }
+.pg-self span { display: flex; gap: 4px; align-items: center; justify-content: center; font-size: .62rem; color: #e2e8f0; padding: 3px 4px; }
+.pg-strip { position: fixed; left: 50%; transform: translateX(-50%); top: 10px; z-index: 45; width: min(640px, 92vw); display: grid; gap: 6px; }
+.pg-strip > div { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-radius: 10px; font-size: .85rem; background: #fffbeb; color: #78350f; border: 1px solid #fcd34d; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.pg-btn { margin-left: auto; border: 1px solid #b45309; background: #fff; color: #92400e; border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: .8rem; }
+@media (max-width: 640px) { .pg-self { width: 96px; } }
+
+/* admin */
+.pa-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.pa-stat { padding: 14px; border: 1px solid var(--ex-line, #e2e8f0); border-radius: 12px; background: var(--ex-surface, #fff); }
+.pa-stat small { display: block; color: var(--ex-muted, #64748b); font-size: .75rem; }
+.pa-stat b { font-size: 1.6rem; }
+.pa-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.pa-toolbar input, .pa-toolbar select { border: 1px solid var(--ex-line, #cbd5e1); border-radius: 8px; padding: 7px 10px; font: inherit; }
+.pa-table-wrap { overflow-x: auto; }
+.pa-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.pa-table th, .pa-table td { padding: 8px 10px; border-bottom: 1px solid var(--ex-line, #e2e8f0); text-align: left; white-space: nowrap; }
+.pa-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.pa-row { cursor: pointer; } .pa-row:hover { background: var(--ex-surface-2, #f1f5f9); }
+.pa-note { font-size: .78rem; color: var(--ex-muted, #64748b); margin: 8px 0 14px; }
+.pa-sev-MEDIUM { color: #b45309; font-weight: 600; } .pa-sev-LOW { color: #475569; } .pa-sev-INFO { color: #64748b; }
+.pa-evnote { display: flex; gap: 6px; } .pa-evnote input { flex: 1; min-width: 160px; border: 1px solid var(--ex-line, #cbd5e1); border-radius: 6px; padding: 4px 8px; font: inherit; }
+
+
+.pg-self { border: 3px solid transparent; }
+.pg-self--ok { border-color: #16a34a; }
+.pg-self--warn { border-color: #f59e0b; }

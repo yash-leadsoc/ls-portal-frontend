@@ -7,6 +7,9 @@ import QuestionCard from './components/QuestionCard';
 import Navigator from './components/QuestionNavigator';
 import Confirm from './components/SubmitConfirmation';
 import ProctorWarning from './components/ProctorWarning';
+import { AutosaveQueue } from './hooks/autosaveQueue';
+import { useProctoring } from './proctoring/useProctoring';
+import ProctoringWarning from './proctoring/ProctoringWarning';
 import { Alert, Button, Icon, Loading, isAnswered } from './components/ExamUI';
 import './exam.css';
 
@@ -26,21 +29,39 @@ export default function ExamInterface() {
   const [proctor, setProctor] = useState({ enabled: false, maxWarnings: 3, count: 0 });
   const [loadError, setLoadError] = useState('');
   const [error, setError] = useState('');
-  const [saveState, setSaveState] = useState('saved'); // saved | saving | error
+  const [saveState, setSaveState] = useState('saved'); // saved | saving | error (offline, retrying) | failed (rejected by server)
+  const [aiCfg, setAiCfg] = useState(null); // AI proctoring config for this exam (null = off)
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [warn, setWarn] = useState(null); // { count } while the warning dialog is open
   const [ending, setEnding] = useState(null); // { reason } while the final submit is in progress
 
   /* ---------- refs: things that must not trigger re-renders ---------- */
   const responsesRef = useRef({});
-  const dirty = useRef(new Map()); // questionId -> { answer, review }
-  const timers = useRef({});
-  const chain = useRef(Promise.resolve());
-  const retryTimer = useRef(null);
+  const queueRef = useRef(null); // AutosaveQueue (created below)
+  const endedRef = useRef(() => {});
+  const statusInflight = useRef(false);
   const finishing = useRef(false);
   const violationCount = useRef(0);
   const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; clearTimeout(retryTimer.current); Object.values(timers.current).forEach(clearTimeout); }, []);
+  useEffect(() => { mounted.current = true; queueRef.current?.resume(); return () => { mounted.current = false; queueRef.current?.destroy(); }; }, []);
+
+  if (!queueRef.current) {
+    queueRef.current = new AutosaveQueue({
+      send: async (qid, payload) => {
+        try {
+          return await examApi.save(attemptId, { questionId: qid, ...payload });
+        } catch (e) {
+          if (e.status === 409 || e.status === 410) endedRef.current(); // exam already ended server-side
+          throw e;
+        }
+      },
+      debounceMs: 400,      // objective answers & review flags: coalesce rapid toggles
+      textDebounceMs: 900,  // written answers: wait for a typing pause
+      storage: window.sessionStorage,
+      storageKey: `ls_exam_pending_${attemptId}`,
+      onChange: (st) => { if (mounted.current) setSaveState(st.status === 'idle' ? 'saved' : st.status); },
+    });
+  }
 
   // Keep `navigate` in a ref so callbacks (and the paper-loading effect) never depend on its identity.
   const navRef = useRef(nav);
@@ -50,17 +71,47 @@ export default function ExamInterface() {
     navRef.current(`/exam/submitted/${attemptId}`, { replace: true, state: { reason: info.reason || (info.autoSubmitted ? 'TIME_EXPIRED' : null), candidateId: info.candidateId } });
   }, [attemptId]);
 
+  const handleAIProctoringResult = useCallback((result = {}) => {
+
+  // Synchronize the warning counter with the backend.
+  if (typeof result.count === 'number') {
+    violationCount.current = result.count;
+
+    setProctor((prev) => ({
+      ...prev,
+      count: result.count
+    }));
+  }
+
+  // Backend has already finalized the examination.
+  if (
+    result.autoSubmitted ||
+    result.finished ||
+    FINAL.includes(result.status)
+  ) {
+    goSubmitted({
+      ...result,
+      reason: result.reason || 'PROCTORING_VIOLATIONS'
+    });
+  }
+
+}, [goSubmitted]);
+
   /* ---------- load the paper ---------- */
   useEffect(() => {
     let cancelled = false;
     examApi.paper(attemptId).then((r) => {
       if (cancelled) return;
       const map = {};
-      (r.responses || []).forEach((x) => { map[x.question] = { answer: x.answer, markedForReview: !!x.markedForReview }; });
+      const queue = queueRef.current;
+      (r.responses || []).forEach((x) => { map[x.question] = { answer: x.answer, markedForReview: !!x.markedForReview }; queue.seedSeq(x.question, x.seq || 0); });
+      // Answers typed just before a reload/crash that never reached the server: re-send & repaint.
+      if (queue.restore()) queue.pendingPayloads().forEach((p, qid) => { map[qid] = { answer: p.answer, markedForReview: !!p.markedForReview }; });
       responsesRef.current = map;
       setResponses(map);
       setQuestions(r.questions || []);
       setMeta(r.exam);
+      setAiCfg(r.aiProctoring?.enabled ? r.aiProctoring : null);
       setDeadline(performance.now() + r.remainingSeconds * 1000);
       violationCount.current = r.proctoring?.violationCount || 0;
       setProctor({ enabled: !!r.proctoring?.enabled, maxWarnings: r.proctoring?.maxWarnings ?? 3, count: violationCount.current });
@@ -73,17 +124,27 @@ export default function ExamInterface() {
   }, [attemptId, goSubmitted]);
 
   /* ---------- keep the countdown in sync with the server ---------- */
+  // The server owns the clock; this only corrects drift and learns that the exam ended.
+  // 60-90 s randomised interval (200 candidates must not poll in lock-step), never two
+  // requests at once, and no request while the tab is hidden.
   useEffect(() => {
     if (deadline == null) return undefined;
-    const id = setInterval(async () => {
-      if (finishing.current) return;
+    let stop = false;
+    let t;
+    const sync = async () => {
+      if (stop || finishing.current || statusInflight.current || document.hidden) return;
+      statusInflight.current = true;
       try {
         const s = await examApi.status(attemptId);
         if (FINAL.includes(s.status)) return goSubmitted(s);
         if (s.remainingSeconds != null) setDeadline(performance.now() + s.remainingSeconds * 1000);
-      } catch { /* offline – local timer keeps running */ }
-    }, 30000);
-    return () => clearInterval(id);
+      } catch { /* offline – local timer keeps running */ } finally { statusInflight.current = false; }
+    };
+    const loop = () => { t = setTimeout(async () => { await sync(); if (!stop) loop(); }, 60000 + Math.random() * 30000); };
+    loop();
+    const onVisible = () => { if (!document.hidden) sync(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { stop = true; clearTimeout(t); document.removeEventListener('visibilitychange', onVisible); };
   }, [deadline == null, attemptId, goSubmitted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- auto-save (ordered, debounced, retried) ---------- */
@@ -94,40 +155,14 @@ export default function ExamInterface() {
     } catch { /* ignore */ }
   }, [attemptId, goSubmitted]);
 
-  const persist = useCallback((qid) => {
-    chain.current = chain.current.then(async () => {
-      const item = dirty.current.get(qid);
-      if (!item) return;
-      dirty.current.delete(qid);
-      if (mounted.current) setSaveState('saving');
-      try {
-        await examApi.save(attemptId, { questionId: qid, answer: item.answer, markedForReview: item.review });
-        if (mounted.current && !dirty.current.size) setSaveState('saved');
-      } catch (e) {
-        if (e.status === 409 || e.status === 410) { endedByServer(); return; }
-        if (!dirty.current.has(qid)) dirty.current.set(qid, item); // keep for retry
-        if (!mounted.current) return;
-        setSaveState('error');
-        clearTimeout(retryTimer.current);
-        retryTimer.current = setTimeout(() => [...dirty.current.keys()].forEach(persist), 4000);
-      }
-    });
-    return chain.current;
-  }, [attemptId, endedByServer]);
+  endedRef.current = endedByServer;
 
-  const queueSave = useCallback((qid, answer, review, immediate) => {
-    dirty.current.set(qid, { answer, review });
-    setSaveState('saving');
-    clearTimeout(timers.current[qid]);
-    if (immediate) persist(qid);
-    else timers.current[qid] = setTimeout(() => persist(qid), 700);
-  }, [persist]);
+  // objective answers / review flags -> 400 ms debounce; written answers -> 900 ms.
+  const queueSave = useCallback((qid, answer, review, objective) => {
+    queueRef.current.enqueue(qid, { answer, markedForReview: review }, { text: !objective });
+  }, []);
 
-  const flushAll = useCallback(async () => {
-    Object.values(timers.current).forEach(clearTimeout);
-    [...dirty.current.keys()].forEach(persist);
-    await chain.current;
-  }, [persist]);
+  const flushAll = useCallback(() => queueRef.current.flush({ timeoutMs: 15000 }), []);
 
   const patch = (qid, changes) => {
     const next = { ...responsesRef.current, [qid]: { ...responsesRef.current[qid], ...changes } };
@@ -150,13 +185,25 @@ export default function ExamInterface() {
   };
 
   /* ---------- final submit (manual, timer or proctoring) ---------- */
+  const proctoringRef = useRef(null);
+  const proctoring = { flush: () => proctoringRef.current?.flush?.() };
   const finish = useCallback(async (reason = 'manual') => {
     if (finishing.current) return;
     finishing.current = true;
     setConfirmOpen(false);
     setWarn(null);
     setEnding({ reason });
-    try { await flushAll(); } catch { /* best effort */ }
+    let flushed = { ok: true, pending: 0 };
+    try { flushed = await flushAll(); } catch { /* handled below */ }
+    if (flushed.pending > 0 && reason === 'manual') {
+      // Never submit over unsaved answers when the candidate still has time: keep them queued and let them retry.
+      finishing.current = false;
+      setEnding(null);
+      setError('Some of your latest answers could not be saved yet (connection problem). Please check your internet and press Submit again.');
+      return;
+    }
+    // Proctoring events must reach the server BEFORE the attempt closes (bounded wait; never blocks submission).
+    try { await proctoring.flush(); } catch { /* ignore */ }
     for (let attempt = 0; attempt < 6; attempt++) {
       try {
         const r = await examApi.submit(attemptId);
@@ -174,7 +221,7 @@ export default function ExamInterface() {
     finishing.current = false;
     setEnding(null);
     setError('We could not reach the server to submit. Check your connection and press Submit again.');
-  }, [attemptId, flushAll, goSubmitted, endedByServer]);
+  }, [attemptId, flushAll, goSubmitted, endedByServer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- proctoring: leaving the exam window ---------- */
   const onLeave = useCallback(async (kind) => {
@@ -201,6 +248,17 @@ export default function ExamInterface() {
   }, [attemptId, proctor.maxWarnings, goSubmitted, finish, endedByServer]);
 
   useProctor({ active: proctor.enabled && !loadError && questions.length > 0 && !ending, onLeave });
+
+  // AI-assisted integrity monitoring (browser-side, metadata only). Independent of the warning policy
+  // above: its events are review indicators and can never submit or end the exam.
+  // `active` deliberately ignores `ending` so camera/event delivery survives until the final flush.
+  const ai = useProctoring({
+  attemptId,
+  config: aiCfg,
+  active: !!aiCfg && !loadError && questions.length > 0,
+  onViolationResult: handleAIProctoringResult
+});
+  proctoringRef.current = ai;
 
   /* ---------- guard against accidental refresh/close, add arrow-key nav ---------- */
   useEffect(() => {
@@ -246,7 +304,7 @@ export default function ExamInterface() {
           <div className="ex-spacer" />
           <span className={`ex-save is-${saveState}`} aria-live="polite">
             <i className="ex-dot" />
-            <span className="ex-save__txt">{saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Offline — retrying…' : 'All changes saved'}</span>
+            <span className="ex-save__txt">{saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Offline — retrying…' : saveState === 'failed' ? 'Could not save an answer' : 'All changes saved'}</span>
           </span>
           {proctor.enabled && (
             <span className={`ex-warnpill ${pillClass}`} title="Warnings for leaving the exam window">
@@ -282,6 +340,9 @@ export default function ExamInterface() {
 
       <Confirm open={confirmOpen} answered={answered} total={questions.length} review={reviewCount}
         onCancel={() => setConfirmOpen(false)} onConfirm={() => finish('manual')} busy={!!ending} />
+      {aiCfg && (
+        <ProctoringWarning state={ai.state} stream={ai.stream} cameraRequired={aiCfg.cameraRequired} onFullscreen={ai.enterFullscreen} />
+      )}
       <ProctorWarning open={!!warn && !ending} count={warn?.count || 0} max={proctor.maxWarnings} onClose={() => setWarn(null)} />
 
       {ending && (

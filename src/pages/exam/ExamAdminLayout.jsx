@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Icon, ToastProvider } from './components/ExamUI';
+import { adminRequest } from './adminApi';
 import './exam.css';
 import './exam-admin.css';
 import { useNavigate } from 'react-router-dom';
@@ -11,15 +12,10 @@ const NAV = [
   { to: '/exam/admin/candidates', label: 'Candidates', icon: 'users' },
   { to: '/exam/admin/results', label: 'Results', icon: 'chart' },
   { to: '/exam/admin/evaluation', label: 'Evaluation', icon: 'checkSquare' },
+  { to: '/exam/admin/proctoring', label: 'Proctoring', icon: 'shield' },
 ];
 
 
-
-const handleLogout = () => {
-  localStorage.removeItem('exam_admin_token');
-  localStorage.removeItem('exam_admin_user');
-  navigate('/exam/admin/login', { replace: true });
-};
 
 // App.jsx renders <ExamAdminLayout><Routes/></ExamAdminLayout>; also works as a layout route (<Outlet/>).
 export default function ExamAdminLayout({ children }) {
@@ -27,6 +23,15 @@ export default function ExamAdminLayout({ children }) {
   const loc = useLocation();
   const navigate = useNavigate();
   useEffect(() => setOpen(false), [loc.pathname]);
+
+  // Secure logout: revoke the token server-side first (best effort), then clear local state.
+  // (Previously this handler lived outside the component, so `navigate` was undefined and threw.)
+  const handleLogout = async () => {
+    try { await adminRequest('admin-auth/logout', { method: 'POST', body: {} }); } catch { /* token may already be invalid */ }
+    localStorage.removeItem('exam_admin_token');
+    localStorage.removeItem('exam_admin_user');
+    navigate('/exam/admin/login', { replace: true });
+  };
 
   return (
     <ToastProvider>
