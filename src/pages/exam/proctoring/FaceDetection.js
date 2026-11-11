@@ -110,14 +110,36 @@ const MIN_CONF = Number(import.meta.env?.VITE_FACE_MIN_CONFIDENCE || 0.4);
 const DELEGATE_USED = {};
 let visionPromise = null;
 
+// async function loadVision() {
+//   if (!visionPromise) {
+//     visionPromise = (async () => {
+//       const mod = await import(/* @vite-ignore */ `${BASE}/mediapipe/vision_bundle.mjs`);
+//       const fileset = await mod.FilesetResolver.forVisionTasks(`${BASE}/mediapipe/wasm`);
+//       return { mod, fileset };
+//     })().catch((e) => { visionPromise = null; throw e; });
+//   }
+//   return visionPromise;
+// }
+
 async function loadVision() {
   if (!visionPromise) {
     visionPromise = (async () => {
-      const mod = await import(/* @vite-ignore */ `${BASE}/mediapipe/vision_bundle.mjs`);
-      const fileset = await mod.FilesetResolver.forVisionTasks(`${BASE}/mediapipe/wasm`);
+      const mod = await import(
+        /* @vite-ignore */ `${BASE}/vision_bundle.mjs`
+      );
+
+      const fileset = await mod.FilesetResolver.forVisionTasks(
+        `${BASE}/wasm`
+      );
+
       return { mod, fileset };
-    })().catch((e) => { visionPromise = null; throw e; });
+    })().catch((e) => {
+      visionPromise = null;
+      console.error('[MediaPipe] Failed to load Vision:', e);
+      throw e;
+    });
   }
+
   return visionPromise;
 }
 
@@ -135,10 +157,32 @@ async function createWithFallback(Cls, fileset, modelPath, extra, label) {
 
 export async function startFaceMonitor({ video, cfg, onFrame, onError = () => {} }) {
   const { mod, fileset } = await loadVision();
-  const detector = await createWithFallback(mod.FaceDetector, fileset, `${BASE}/blaze_face_short_range.tflite`, { minDetectionConfidence: MIN_CONF }, 'detector');
-  const landmarker = cfg.poseFps > 0
-    ? await createWithFallback(mod.FaceLandmarker, fileset, `${BASE}/face_landmarker.task`, { numFaces: 1, outputFaceBlendshapes: false, outputFacialTransformationMatrixes: false }, 'landmarker')
-    : null;
+  // const detector = await createWithFallback(mod.FaceDetector, fileset, `${BASE}/blaze_face_short_range.tflite`, { minDetectionConfidence: MIN_CONF }, 'detector');
+  // const landmarker = cfg.poseFps > 0
+  //   ? await createWithFallback(mod.FaceLandmarker, fileset, `${BASE}/face_landmarker.task`, { numFaces: 1, outputFaceBlendshapes: false, outputFacialTransformationMatrixes: false }, 'landmarker')
+  //   : null;
+
+  const detector = await createWithFallback(
+  mod.FaceDetector,
+  fileset,
+  `${BASE}/blaze_face_short_range.tflite`,
+  { minDetectionConfidence: MIN_CONF },
+  'detector'
+);
+
+const landmarker = cfg.poseFps > 0
+  ? await createWithFallback(
+      mod.FaceLandmarker,
+      fileset,
+      `${BASE}/face_landmarker.task`,
+      {
+        numFaces: 1,
+        outputFaceBlendshapes: false,
+        outputFacialTransformationMatrixes: false
+      },
+      'landmarker'
+    )
+  : null;
 
   let fps = cfg.detectionFps;
   let timer = null;
