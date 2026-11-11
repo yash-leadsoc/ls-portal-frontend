@@ -51,7 +51,7 @@ async function get(url, dest) {
 }
 
 try {
-  const jobs = [[`${NPM}/vision_bundle.mjs`, path.join(OUT, 'vision_bundle.mjs')]];
+  const jobs = [[`${NPM}/mediapipe/vision_bundle.mjs`, path.join(OUT, 'vision_bundle.mjs')]];
   for (const f of await wasmFiles()) jobs.push([`${NPM}/wasm/${f}`, path.join(OUT, 'wasm', f)]);
   for (const [name, url] of Object.entries(MODELS)) jobs.push([url, path.join(OUT, name)]);
   for (const [url, dest] of jobs) console.log(`${(await get(url, dest)).padEnd(10)} ${path.relative(OUT, dest)}`);
