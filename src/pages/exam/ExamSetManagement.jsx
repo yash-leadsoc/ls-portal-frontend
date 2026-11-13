@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { adminRequest } from './adminApi';
+import { adminRequest, adminUpload } from './adminApi';
 import { Alert, Badge, Button, ConfirmDialog, Empty, Field, Loading, Modal, PageHeader, useToast } from './components/ExamUI';
 
 export default function ExamSetManagement() {
@@ -12,6 +12,11 @@ export default function ExamSetManagement() {
   const [edit, setEdit] = useState(null); // {} for new
   const [del, setDel] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [excelFile, setExcelFile] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [importErrors, setImportErrors] = useState([]);
+  const [importBusy, setImportBusy] = useState(false);
 
   const load = useCallback(() => {
     adminRequest(`admin/exams/${examId}`).then(setExam).catch((e) => setError(e.message));
@@ -40,11 +45,90 @@ export default function ExamSetManagement() {
     catch (x) { toast(x.message, 'error'); setDel(null); } finally { setBusy(false); }
   }
 
+
+  async function previewExcel() {
+    if (!excelFile) {
+      toast('Please select an Excel file', 'error');
+      return;
+    }
+
+    setImportBusy(true);
+    setImportPreview(null);
+    setImportErrors([]);
+
+    try {
+      const result = await adminUpload(
+        `admin/exams/${examId}/import-excel`,
+        excelFile,
+        '?preview=true'
+      );
+
+      setImportPreview(result);
+      toast('Excel validation successful');
+    } catch (e) {
+      setImportErrors(e.data?.errors || []);
+      toast(e.message, 'error');
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  async function importExcel() {
+    if (!excelFile || !importPreview) return;
+
+    setImportBusy(true);
+
+    try {
+      const result = await adminUpload(
+        `admin/exams/${examId}/import-excel`,
+        excelFile
+      );
+
+      toast(
+        `Imported ${result.totalQuestions} questions in ${result.totalSets} sets`
+      );
+
+      setImportOpen(false);
+      setExcelFile(null);
+      setImportPreview(null);
+      setImportErrors([]);
+      load();
+    } catch (e) {
+      setImportErrors(e.data?.errors || []);
+      toast(e.message, 'error');
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+
   return (
     <>
       <PageHeader crumbs={[{ label: 'Exams', to: '/exam/admin/exams' }, { label: exam?.name || '…', to: `/exam/admin/exams/${examId}` }, { label: 'Question sets' }]}
         title="Question sets" subtitle="Each candidate is randomly given one active set. Use several sets to reduce copying."
-        actions={<Button icon="plus" onClick={() => setEdit({ name: '', description: '', isActive: true })}>New set</Button>} />
+        actions={
+          <div className="ex-row ex-row--wrap">
+            <Button
+              variant="secondary"
+              icon="upload"
+              onClick={() => setImportOpen(true)}
+            >
+              Import Excel
+            </Button>
+
+            <Button
+              icon="plus"
+              onClick={() => setEdit({
+                name: '',
+                description: '',
+                isActive: true
+              })}
+            >
+              New set
+            </Button>
+          </div>
+        }
+      />
       <Alert>{error}</Alert>
       {!sets && !error ? <Loading /> : !sets?.length ? (
         <div className="ex-card"><Empty icon="layers" title="No question sets yet" action={<Button icon="plus" onClick={() => setEdit({ name: 'Set A', description: '', isActive: true })}>Create “Set A”</Button>}>
@@ -77,6 +161,161 @@ export default function ExamSetManagement() {
       <ConfirmDialog open={!!del} danger title="Delete this set?" confirmLabel="Delete" busy={busy} onCancel={() => setDel(null)} onConfirm={remove}>
         “{del?.name}” and all of its questions will be deleted.
       </ConfirmDialog>
+
+
+      <Modal
+        open={importOpen}
+        wide
+        title="Import question sets from Excel"
+        onClose={() => {
+          if (!importBusy) {
+            setImportOpen(false);
+            setExcelFile(null);
+            setImportPreview(null);
+            setImportErrors([]);
+          }
+        }}
+        dismissible={!importBusy}
+      >
+        <div className="ex-stack" style={{ paddingBottom: 18, gap: 14 }}>
+
+          <div className="ex-card">
+            <h3>Excel format</h3>
+            <p className="ex-muted ex-small">
+              Each worksheet will automatically become one question set.
+              Every question must have four options and exactly one correct answer.
+            </p>
+
+            <p className="ex-small">
+              Required columns: Question, Option A, Option B,
+              Option C, Option D, Answer Key.
+            </p>
+
+            <p className="ex-small">
+              Answer Key must contain A, B, C or D.
+              Each imported question receives 1 mark and 0 negative marks.
+            </p>
+          </div>
+
+          <div className="ex-field">
+            <label className="ex-label" htmlFor="exam-excel-file">
+              Select Excel file (.xlsx or .xls)
+            </label>
+
+            <input
+              id="exam-excel-file"
+              className="ex-input"
+              type="file"
+              accept=".xlsx,.xls"
+              disabled={importBusy}
+              onChange={e => {
+                setExcelFile(e.target.files?.[0] || null);
+                setImportPreview(null);
+                setImportErrors([]);
+              }}
+            />
+          </div>
+
+          {excelFile && (
+            <div className="ex-card">
+              <b>{excelFile.name}</b>
+              <p className="ex-muted ex-small">
+                {(excelFile.size / 1024).toFixed(1)} KB
+              </p>
+            </div>
+          )}
+
+          {importPreview && (
+            <div className="ex-card">
+              <div className="ex-row">
+                <h3>Import preview</h3>
+                <div className="ex-spacer" />
+                <Badge tone="success">Validated</Badge>
+              </div>
+
+              <div className="ex-row ex-row--wrap">
+                <Badge tone="brand">
+                  {importPreview.totalSets} sets
+                </Badge>
+                <Badge tone="success">
+                  {importPreview.totalQuestions} questions
+                </Badge>
+              </div>
+
+              {importPreview.sets.map((s, i) => (
+                <div
+                  className="ex-row"
+                  key={s.name}
+                  style={{
+                    justifyContent: 'space-between',
+                    padding: '8px 0',
+                    borderBottom: '1px solid var(--ex-border, #e5e7eb)'
+                  }}
+                >
+                  <span>{i + 1}. {s.name}</span>
+                  <Badge>{s.questionCount} questions</Badge>
+                </div>
+              ))}
+
+              <p className="ex-muted ex-small">
+                Every imported question will be single-choice MCQ.
+                Importing will create new sets; it will not overwrite existing sets.
+              </p>
+            </div>
+          )}
+
+          {importErrors.length > 0 && (
+            <div className="ex-card">
+              <h3>Excel validation errors</h3>
+
+              {importErrors.slice(0, 30).map((err, i) => (
+                <p className="ex-small" key={i}>
+                  <b>{err.sheet || 'Workbook'}</b>
+                  {err.row ? ` · Row ${err.row}` : ''}
+                  {' — '}
+                  {err.message}
+                </p>
+              ))}
+
+              {importErrors.length > 30 && (
+                <p className="ex-muted ex-small">
+                  And {importErrors.length - 30} more errors.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="ex-row ex-row--wrap" style={{ justifyContent: 'flex-end' }}>
+            <Button
+              variant="secondary"
+              disabled={importBusy}
+              onClick={() => setImportOpen(false)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              variant="secondary"
+              icon="check"
+              busy={importBusy}
+              disabled={!excelFile}
+              onClick={previewExcel}
+            >
+              Validate Excel
+            </Button>
+
+            <Button
+              icon="upload"
+              busy={importBusy}
+              disabled={!importPreview || importErrors.length > 0}
+              onClick={importExcel}
+            >
+              Import {importPreview?.totalQuestions || ''} Questions
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
     </>
   );
 }

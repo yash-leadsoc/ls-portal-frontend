@@ -75,3 +75,34 @@ export async function uploadImage(file) {
   if (!res.ok) throw new Error(data.message || 'Upload failed');
   return data.url;
 }
+
+
+
+export async function adminUpload(path, file, query = '') {
+  const token = localStorage.getItem('exam_admin_token');
+  const fd = new FormData();
+
+  fd.append('file', file);
+
+  const response = await fetch(
+    `${API}/exam/${path}${query}`,
+    {
+      method: 'POST',
+      headers: token
+        ? { Authorization: `Bearer ${token}` }
+        : {},
+      body: fd,
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const error = new Error(data.message || 'Excel upload failed');
+    error.data = data;
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
+}
