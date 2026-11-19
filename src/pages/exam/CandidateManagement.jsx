@@ -38,7 +38,7 @@ export default function CandidateManagement() {
         </div>
         {!rows && !error ? <Loading /> : !rows?.length ? <Empty icon="users" title="No candidates found">Candidates appear here once they register for an exam.</Empty> : (
           <div className="ex-table-wrap"><table className="ex-table">
-            <thead><tr><th>Candidate</th><th>Contact</th><th>Exam</th><th>Status</th><th className="ex-num">Score</th><th>Registered</th><th /></tr></thead>
+            <thead><tr><th>Candidate</th><th>Contact</th><th>Exam</th><th>Status</th><th>Interested Domain</th><th className="ex-num">Score</th><th>Registered</th><th /></tr></thead>
             <tbody>{rows.map((c) => (
               <tr key={c._id}>
                 <td><div className="ex-cell-title">{c.name}</div><div className="ex-cell-sub">{c.candidateId}</div></td>
@@ -46,6 +46,7 @@ export default function CandidateManagement() {
                 <td>{c.exam?.name || '—'}</td>
                 <td>{c.attempt ? <StatusBadge status={c.attempt.status} /> : <Badge>Not started</Badge>}
                   {c.attempt?.violationCount > 0 && <> <Badge tone="warn">⚠ {c.attempt.violationCount}</Badge></>}</td>
+               <td>{c.interestedDomain || '—'}</td> 
                 <td className="ex-num">{c.result ? `${c.result.obtainedMarks}/${c.result.maximumMarks}` : '—'}</td>
                 <td className="ex-cell-sub">{fmtDate(c.createdAt)}</td>
                 <td>{c.attempt && c.result && <Link to={`/exam/admin/results/${c.attempt._id}`}><Button size="sm" variant="secondary" icon="eye">Report</Button></Link>}</td>

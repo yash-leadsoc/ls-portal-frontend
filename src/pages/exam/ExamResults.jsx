@@ -34,7 +34,7 @@ export default function ExamResults() {
   const [range, setRange] = useState({ preset: flagged ? 'all' : 'today', from: '', to: '' });
   const [error, setError] = useState('');
 
-  useEffect(() => { adminRequest('admin/exams').then(setExams).catch(() => {}); }, []);
+  useEffect(() => { adminRequest('admin/exams').then(setExams).catch(() => { }); }, []);
   const { from, to } = useMemo(() => rangeOf(range), [range]);
   const query = qs({ exam, status, q, from, to, flagged: flagged ? 'true' : '' });
 
@@ -100,19 +100,22 @@ export default function ExamResults() {
           </Empty>
         ) : (
           <div className="ex-table-wrap"><table className="ex-table ex-table--compact">
-            <thead><tr><th>Rank</th><th>Candidate</th><th>Exam</th><th className="ex-num">Score</th><th className="ex-num">%</th><th>Result</th><th>Evaluation</th><th>Proctoring</th><th>Submitted</th><th /></tr></thead>
+            <thead><tr><th>Rank</th><th>Candidate</th><th>Exam</th><th>Intersted Domain</th><th className="ex-num">Score</th><th className="ex-num">%</th><th>Result</th><th>Evaluation</th><th>Proctoring</th><th>Submitted</th><th /></tr></thead>
             <tbody>{rows.map((r) => (
               <tr key={r._id}>
                 <td className="ex-tnum"><b>{r.rank ? `#${r.rank}` : '—'}</b></td>
                 <td className="ex-nowrap"><div className="ex-cell-title">{r.candidate?.name}</div><div className="ex-cell-sub">{r.candidate?.candidateId}</div></td>
                 <td>{r.exam?.name}</td>
+                <td>
+                  {r.candidate?.interestedDomain || 'Not selected'}
+                </td>
                 <td className="ex-num ex-nowrap">{r.obtainedMarks}/{r.maximumMarks}</td>
                 <td className="ex-num">{fmtPct(r.percentage)}</td>
                 <td><StatusBadge status={r.status} /></td>
                 <td>{evaluationBadge(r)}</td>
                 <td>{r.attempt?.autoSubmitReason === 'PROCTORING_VIOLATIONS' ? <Badge tone="danger">Auto-submitted</Badge>
                   : r.attempt?.violationCount > 0 ? <Badge tone="warn">⚠ {r.attempt.violationCount}</Badge>
-                  : r.attempt?.autoSubmitReason === 'TIME_EXPIRED' ? <Badge>Time expired</Badge> : <span className="ex-muted">—</span>}</td>
+                    : r.attempt?.autoSubmitReason === 'TIME_EXPIRED' ? <Badge>Time expired</Badge> : <span className="ex-muted">—</span>}</td>
                 <td className="ex-cell-sub ex-nowrap">{fmtShort(r.attempt?.submittedAt)}</td>
                 <td><Link to={`/exam/admin/results/${r.attempt?._id}`}><Button size="sm" variant="secondary" className="ex-btn--icon" icon="eye" aria-label="Open report" title="Open report" /></Link></td>
               </tr>))}</tbody>
