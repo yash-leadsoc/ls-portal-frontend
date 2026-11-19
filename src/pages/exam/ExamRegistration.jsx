@@ -122,6 +122,15 @@ export default function ExamRegistration() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -180,6 +189,31 @@ export default function ExamRegistration() {
       setBusy(false);
     }
   }
+
+  const startTime = exam?.startsAt
+    ? new Date(exam.startsAt).getTime()
+    : null;
+
+  const endTime = exam?.endsAt
+    ? new Date(exam.endsAt).getTime()
+    : null;
+
+  const isEnded = endTime && now > endTime;
+
+  const isLive =
+    exam &&
+    !isEnded &&
+    (!startTime || now >= startTime) &&
+    ['Live', 'Scheduled'].includes(exam.status);
+
+  const remaining = startTime
+    ? Math.max(0, startTime - now)
+    : 0;
+
+  const days = Math.floor(remaining / 86400000);
+  const hours = Math.floor((remaining % 86400000) / 3600000);
+  const minutes = Math.floor((remaining % 3600000) / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
 
   return (
     <StudentShell>
@@ -255,8 +289,59 @@ export default function ExamRegistration() {
           </aside>
 
           <section className="ex-split__form">
+
+
+            {exam && (
+              <div className="ex-card" style={{ padding: 24, marginBottom: 24 }}>
+                {isEnded ? (
+                  <>
+                    <h2>Examination has ended</h2>
+                    <p>This examination is no longer accepting registrations.</p>
+                  </>
+                ) : isLive ? (
+                  <>
+                    <h2 style={{ color: '#16a34a' }}>Examination is Live!</h2>
+                    <p>Registration is now open.</p>
+                  </>
+                ) : (
+                  <>
+                    <h2>Examination starts soon</h2>
+                    <p>Registration will open at the scheduled start time.</p>
+
+                    <div style={{
+                      display: 'flex',
+                      gap: 12,
+                      flexWrap: 'wrap',
+                      marginTop: 20
+                    }}>
+                      {[
+                        ['Days', days],
+                        ['Hours', hours],
+                        ['Minutes', minutes],
+                        ['Seconds', seconds]
+                      ].map(([label, value]) => (
+                        <div key={label} style={{
+                          background: '#eef2ff',
+                          padding: '16px 20px',
+                          borderRadius: 12,
+                          minWidth: 75,
+                          textAlign: 'center'
+                        }}>
+                          <h2 style={{ margin: 0 }}>
+                            {String(value).padStart(2, '0')}
+                          </h2>
+                          <small>{label}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <div>
               <h1>Enter your details</h1>
+
               <p className="ex-muted" style={{ marginTop: 6 }}>
                 We use these to identify your attempt and send your confirmation.
               </p>
@@ -350,7 +435,7 @@ export default function ExamRegistration() {
 
               {error && <Alert title="Registration error">{error}</Alert>}
 
-              <Button
+              {/* <Button
                 type="submit"
                 variant="primary"
                 size="lg"
@@ -359,6 +444,21 @@ export default function ExamRegistration() {
                 disabled={!exam || busy}
               >
                 Continue to instructions
+              </Button>*/}
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                busy={busy}
+                block
+                disabled={!exam || !isLive || isEnded || busy}
+              >
+                {isEnded
+                  ? 'Examination Ended'
+                  : isLive
+                    ? 'Continue to instructions'
+                    : 'Registration opens at exam time'}
               </Button>
             </form>
           </section>

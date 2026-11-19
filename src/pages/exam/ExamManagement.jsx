@@ -61,6 +61,19 @@ export default function ExamManagement() {
     catch (x) { toast(x.message, 'error'); setDel(null); } finally { setBusy(false); }
   }
 
+
+  async function shareExam(e) {
+    const link = `${window.location.origin}/exam/register/${e._id}`;
+
+    try {
+      await navigator.clipboard.writeText(link);
+      toast('Exam link copied successfully');
+    } catch {
+      toast('Could not copy link. Please copy it manually.', 'error');
+    }
+  }
+
+
   return (
     <>
       <PageHeader title="Examinations" subtitle="Create exams, build question sets and control when candidates can take them."
@@ -89,9 +102,51 @@ export default function ExamManagement() {
                 <td className="ex-num">{e.setCount} · {e.questionCount}</td>
                 <td className="ex-num">{e.candidateCount}</td>
                 <td><div className="ex-actions">
-                  {e.status === 'Live'
+
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon="copy"
+                    onClick={() => shareExam(e)}
+                  >
+                    Share link
+                  </Button>
+                  {/* {e.status === 'Live'
                     ? <Button size="sm" variant="secondary" icon="pause" onClick={() => setStatus(e, 'Paused')}>Pause</Button>
-                    : ['Draft', 'Scheduled', 'Paused', 'Completed'].includes(e.status) && <Button size="sm" variant="success" icon="play" onClick={() => goLive(e)}>{e.status === 'Completed' ? 'Re-live' : 'Go live'}</Button>}
+                    : ['Draft', 'Scheduled', 'Paused', 'Completed'].includes(e.status) && <Button size="sm" variant="success" icon="play" onClick={() => goLive(e)}>{e.status === 'Completed' ? 'Re-live' : 'Go live'}</Button>} */}
+                  {e.status === 'Live' ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon="pause"
+                      onClick={() => setStatus(e, 'Paused')}
+                    >
+                      Pause
+                    </Button>
+                  ) : (
+                    <>
+                      {e.status === 'Draft' && e.startsAt && e.endsAt && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setStatus(e, 'Scheduled')}
+                        >
+                          Schedule
+                        </Button>
+                      )}
+
+                      {['Draft', 'Scheduled', 'Paused'].includes(e.status) && (
+                        <Button
+                          size="sm"
+                          variant="success"
+                          icon="play"
+                          onClick={() => setStatus(e, 'Live')}
+                        >
+                          Go live
+                        </Button>
+                      )}
+                    </>
+                  )}
                   <Link to={`/exam/admin/exams/${e._id}/sets`}><Button size="sm" variant="secondary" icon="layers">Sets</Button></Link>
                   <Link to={`/exam/admin/exams/${e._id}`}><Button size="sm" variant="ghost" className="ex-btn--icon" icon="edit" aria-label="Edit" /></Link>
                   <Button size="sm" variant="ghost" className="ex-btn--icon" icon="trash" aria-label="Delete" onClick={() => setDel(e)} />
