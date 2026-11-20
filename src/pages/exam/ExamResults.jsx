@@ -69,7 +69,30 @@ export default function ExamResults() {
       <PageHeader title={label} subtitle="Scores and results are calculated automatically — written answers are graded by AI after submission."
         actions={<>
           {exam && <Button variant="secondary" icon="refresh" onClick={recalc}>Save ranks</Button>}
-          <Button variant="secondary" icon="download" onClick={() => downloadFile(`results/export${query}`, 'exam-results.csv').catch((e) => toast(e.message, 'error'))}>Export CSV</Button>
+          {/* <Button variant="secondary" icon="download" onClick={() => downloadFile(`results/export${query}`, 'exam-results.csv').catch((e) => toast(e.message, 'error'))}>Export CSV</Button> */}
+
+          <Button
+  variant="secondary"
+  icon="download"
+  onClick={() => {
+    const selectedExam = exams.find(
+      (e) => e._id === exam
+    );
+
+    const safeName = selectedExam
+      ? selectedExam.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')
+      : 'All-Exams';
+
+    const filename = `${safeName}-Results.csv`;
+
+    downloadFile(
+      `results/export${query}`,
+      filename
+    ).catch((e) => toast(e.message, 'error'));
+  }}
+>
+  Export CSV
+</Button>
         </>} />
       <Alert>{error}</Alert>
 

@@ -288,7 +288,7 @@ export default function ExamRegistration() {
             )}
           </aside>
 
-          <section className="ex-split__form">
+          {/* <section className="ex-split__form">
 
 
             {exam && (
@@ -298,7 +298,9 @@ export default function ExamRegistration() {
                     <h2>Examination has ended</h2>
                     <p>This examination is no longer accepting registrations.</p>
                   </>
-                ) : isLive ? (
+                ) 
+                
+                : isLive ? (
                   <>
                     <h2 style={{ color: '#16a34a' }}>Examination is Live!</h2>
                     <p>Registration is now open.</p>
@@ -446,7 +448,7 @@ export default function ExamRegistration() {
                 Continue to instructions
               </Button>*/}
 
-              <Button
+              {/* <Button
                 type="submit"
                 variant="primary"
                 size="lg"
@@ -461,7 +463,280 @@ export default function ExamRegistration() {
                     : 'Registration opens at exam time'}
               </Button>
             </form>
-          </section>
+          </section>  */}
+
+
+<section className="ex-split__form">
+
+  {isEnded ? (
+    // EXAMINATION ENDED SCREEN
+    <div
+      className="ex-card"
+      style={{
+        width: '100%',
+        maxWidth: 520,
+        margin: 'auto',
+        padding: '48px 32px',
+        textAlign: 'center',
+        borderRadius: 20
+      }}
+    >
+      <div
+        style={{
+          width: 82,
+          height: 82,
+          borderRadius: '50%',
+          background: '#fee2e2',
+          color: '#dc2626',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 24px'
+        }}
+      >
+        <Icon name="calendar-x" size={38} />
+      </div>
+
+      <span
+        style={{
+          color: '#dc2626',
+          fontWeight: 700,
+          fontSize: 12,
+          letterSpacing: 1.5
+        }}
+      >
+        EXAMINATION CLOSED
+      </span>
+
+      <h1 style={{ marginTop: 12 }}>
+        Examination Over
+      </h1>
+
+      <p
+        className="ex-muted"
+        style={{
+          marginTop: 12,
+          lineHeight: 1.7
+        }}
+      >
+        This examination has ended. Registration and examination
+        access are now closed.
+      </p>
+
+      <div
+        style={{
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: 12,
+          padding: 16,
+          marginTop: 24
+        }}
+      >
+        <small style={{ color: '#64748b' }}>
+          EXAMINATION
+        </small>
+        <h3 style={{ marginTop: 6 }}>
+          {exam?.name}
+        </h3>
+      </div>
+
+      <p
+        style={{
+          color: '#64748b',
+          fontSize: 13,
+          marginTop: 24
+        }}
+      >
+        Thank you for your interest in LeadSoc Technologies.
+      </p>
+    </div>
+
+  ) : (
+    <>
+      {/* COUNTDOWN AND EXAM STATUS */}
+
+      {exam && (
+        <div
+          className="ex-card"
+          style={{
+            padding: 24,
+            marginBottom: 24
+          }}
+        >
+          {isLive ? (
+            <>
+              <h2 style={{ color: '#16a34a' }}>
+                Examination is Live!
+              </h2>
+              <p>Registration is now open.</p>
+            </>
+          ) : (
+            <>
+              <h2>Examination starts soon</h2>
+              <p>Registration will open at the scheduled start time.</p>
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                  marginTop: 20
+                }}
+              >
+                {[
+                  ['Days', days],
+                  ['Hours', hours],
+                  ['Minutes', minutes],
+                  ['Seconds', seconds]
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    style={{
+                      background: '#eef2ff',
+                      padding: '16px 20px',
+                      borderRadius: 12,
+                      minWidth: 75,
+                      textAlign: 'center'
+                    }}
+                  >
+                    <h2 style={{ margin: 0 }}>
+                      {String(value).padStart(2, '0')}
+                    </h2>
+                    <small>{label}</small>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* REGISTRATION FORM */}
+
+      <div>
+        <h1>Enter your details</h1>
+
+        <p className="ex-muted" style={{ marginTop: 6 }}>
+          We use these to identify your attempt and send your confirmation.
+        </p>
+      </div>
+
+      <form className="ex-form" onSubmit={submit}>
+
+        <Field label="Full name">
+          <div className="ex-input-wrap">
+            <Icon name="users" size={17} />
+            <input
+              className="ex-input"
+              name="name"
+              autoComplete="name"
+              required
+              minLength={2}
+              maxLength={100}
+              disabled={!isLive || busy}
+              value={form.name}
+              onChange={change}
+              placeholder="As it should appear on your result"
+            />
+          </div>
+        </Field>
+
+        <Field label="Email address">
+          <div className="ex-input-wrap">
+            <Icon name="mail" size={17} />
+            <input
+              className="ex-input"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              disabled={!isLive || busy}
+              value={form.email}
+              onChange={change}
+              placeholder="you@example.com"
+            />
+          </div>
+        </Field>
+
+        <Field
+          label="Phone number"
+          hint="Include country code if outside India, e.g. +91 98765 43210"
+        >
+          <div className="ex-input-wrap">
+            <Icon name="phone" size={17} />
+            <input
+              className="ex-input"
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              required
+              pattern="[+]?[0-9]{8,15}"
+              title="Enter 8–15 digits, optionally starting with +"
+              disabled={!isLive || busy}
+              value={form.phone}
+              onChange={change}
+              placeholder="+91 98765 43210"
+            />
+          </div>
+        </Field>
+
+        <Field
+          label="Interested Domain"
+          hint="Select the domain you are interested in."
+        >
+          <div className="ex-input-wrap">
+            <Icon name="layers" size={17} />
+
+            <select
+              className="ex-input"
+              name="interestedDomain"
+              value={form.interestedDomain}
+              onChange={change}
+              required
+              disabled={!isLive || busy}
+              style={{
+                cursor: 'pointer',
+                backgroundColor: 'transparent'
+              }}
+            >
+              <option value="" disabled>
+                Select Interested Domain
+              </option>
+
+              {INTERESTED_DOMAINS.map((domain) => (
+                <option key={domain} value={domain}>
+                  {domain}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Field>
+
+        {error && (
+          <Alert title="Registration error">
+            {error}
+          </Alert>
+        )}
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          busy={busy}
+          block
+          disabled={!exam || !isLive || busy}
+        >
+          {isLive
+            ? 'Continue to instructions'
+            : 'Registration opens at exam time'}
+        </Button>
+
+      </form>
+    </>
+  )}
+
+</section>
+
         </div>
       )}
     </StudentShell>
